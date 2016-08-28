@@ -45,7 +45,7 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
     # RESET NONTAX ACCESS - ROTH LADDER #
     #####################################
     if(year > year_retire_early & !changed_year_nontax){
-      if(tax_total[year - 1] < yearly_spend * 5){
+      if(tax_total[year - 1] < yearly_spend * 6){
         if(year_access_nontax > (year + 5)){
 
           # change if previous year's taxable account total isn't enough (depending on yearly spend)
@@ -174,7 +174,7 @@ shinyServer(function(input, output) {
 
   # output data as csv
   output$downloadData <- downloadHandler(
-    filename = paste0("Retire_at_", input$retire_early, "_spending_", input$yearly_spend, "_at_", input$growth_rate, "_growth", ".csv"),
+    filename = function() paste0("Retire_at_", input$retire_early, "_spending_", input$yearly_spend, "_at_", input$growth_rate, "_growth", ".csv"),
     content = function(file) write.csv(run_calc()$data, file, row.names = FALSE)
   )
 
@@ -187,7 +187,7 @@ shinyServer(function(input, output) {
       geom_line(size = 1.1) +
       geom_hline(yintercept = 0, size = 1.1, linetype = "dashed", color = "red") +
       facet_grid(~ variable) +
-      labs(x = "Age", y = "Interest Earned ($)", "Interested Earned by Age")
+      labs(x = "Age", y = "Interest Earned ($)", title = "Interested Earned by Age")
 
   })
 
@@ -197,7 +197,7 @@ shinyServer(function(input, output) {
       geom_line(size = 1.1) +
       geom_hline(yintercept = 0, size = 1.1, linetype = "dashed", color = "red") +
       facet_grid(~ variable) +
-      labs(x = "Age", y = "Total ($)", "Interested Earned by Age")
+      labs(x = "Age", y = "Total ($)", title = "Account Assets by Age")
 
   })
 
