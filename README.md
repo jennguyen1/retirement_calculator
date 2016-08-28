@@ -1,2 +1,4 @@
 # retirement_calculator
-Shiny App
+
+Run the app: 
+https://jennynguyen.shinyapps.io/retirement_calculator/
