@@ -21,7 +21,7 @@ dashboardPage(
 
       fluidRow(
         column(width = 6, numericInput("start_age", "Current Age", 25)),
-        column(width = 6, numericInput("retire_early", "Retire Early Age", 40, min = 35, max = 60))
+        column(width = 6, numericInput("retire_early", "Retire Early Age", 45, min = 35, max = 60))
       ),
       fluidRow(
         column(width = 6, numericInput("yearly_spend", "Spending Per Year", 35000, min = 0)),
@@ -32,7 +32,7 @@ dashboardPage(
         column(width = 6, numericInput("nontax_starting_principle", "Initial Principle in Retirement Accounts", 11000, min = 0))
       ),
       fluidRow(
-        column(width = 6, numericInput("tax_yearly_add", "Amount Added to Taxable Account Yearly", 12000, min = 0)),
+        column(width = 6, numericInput("tax_yearly_add", "Amount Added to Taxable Account Yearly", 9000, min = 0)),
         column(width = 6, numericInput("nontax_yearly_add", "Amount Added to Retirement Account Yearly", 23500, min = 0))
       )
     ),
