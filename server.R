@@ -13,7 +13,7 @@ theme_set(theme_bw())
 # function to calculate retirement
 retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_starting_principle,
                    start_age = 25, access_nontax = 60,
-                   growth_rate = 0.05, tax_yearly_add = 12000, nontax_yearly_add = 23500
+                   growth_rate = 0.05, tax_yearly_add = 0, nontax_yearly_add = 0
 ){
 
   # initialize parameters
