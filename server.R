@@ -38,6 +38,9 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
   # set variable for changing withdrawals from accounts
   changed_year_nontax <- FALSE
 
+  # variable if ran out of money
+  went_broke <- FALSE
+
   # calculate account values
   for(year in years_from_25){
 
@@ -83,6 +86,13 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
       tax_interest[year] <- tax_principle[year] * growth_rate
       tax_total[year] <- max(tax_principle[year] + tax_interest[year] - yearly_spend, 0)
 
+      # went broke: ran out of money before being able to access retirement funds
+      went_broke <- ifelse(tax_total[year] == 0, TRUE, FALSE)
+      if(went_broke){
+        year_access_nontax <- year
+        changed_year_nontax <- TRUE
+      }
+
       # nontaxable accounts
       nontax_principle[year] <- nontax_total[year - 1]
       nontax_interest[year] <- nontax_principle[year] * growth_rate
@@ -125,7 +135,7 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
                   nontax_principle, nontax_interest, nontax_total)
 
   # return data
-  return( list(data = d, nontax_access = year_access_nontax) )
+  return( list(data = d, nontax_access = year_access_nontax, went_broke = went_broke) )
 
 }
 
@@ -155,19 +165,23 @@ shinyServer(function(input, output) {
     d2 <- subset(retire_data$data, age == input$retire_early)
     year_access_nontax <- retire_data$nontax_access
 
+    # process data if retire too early - went broke
+    went_broke <- ifelse(retire_data$went_broke, paste("Warning: ran out of money in taxable account; must access retirement accounts early<br/>"), "")
+
     # obtain text
     HTML(paste(
       "Years Working:", input$retire_early - input$start_age, "<br/>",
       "Assets in Taxable Account at RE ($):", round(d2$tax_total, 2), "<br/>",
-      "Assets in Untaxable Account at RE ($):", round(d2$nontax_total, 2), "<br/>",
+      "Assets in Retirement Account at RE ($):", round(d2$nontax_total, 2), "<br/>",
       "Assets Total at RE ($):", round(d2$tax_total + d2$nontax_total, 2), "<br/>",
       "<br/>",
       "Age Retire:", input$retire_early, "<br/>",
-      "Age Start Roth Ladder:", age[year_access_nontax] - 5, "<br/>",
+      "Age Start Roth Ladder:", max(age[year_access_nontax] - 5, input$retire_early + 1), "<br/>",
       "Age Access Retirement Accounts:", age[year_access_nontax], "<br/>",
+      went_broke,
       "<br/>",
       "Assets in Taxable Account at 100 ($):", round(run_calc()$data$tax_total[length(age)], 2), "<br/>",
-      "Assets in Untaxable Account at 100 ($):", round(run_calc()$data$nontax_total[length(age)], 2), "<br/>"
+      "Assets in Retirement Account at 100 ($):", round(run_calc()$data$nontax_total[length(age)], 2), "<br/>"
     ))
 
   })

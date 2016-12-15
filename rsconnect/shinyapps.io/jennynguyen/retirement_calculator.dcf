@@ -2,8 +2,8 @@ name: retirement_calculator
 account: jennynguyen
 server: shinyapps.io
 appId: 122647
-bundleId: 624700
+bundleId: 638157
 url: https://jennynguyen.shinyapps.io/retirement_calculator/
-when: 1480012417.68707
+when: 1481058952.30547
 asMultiple: FALSE
 asStatic: FALSE
