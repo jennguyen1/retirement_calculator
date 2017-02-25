@@ -162,7 +162,7 @@ shinyServer(function(input, output) {
     # obtain data
     age <- input$start_age:100
     retire_data <- run_calc()
-    d2 <- subset(retire_data$data, age == input$retire_early)
+    d2 <- subset(retire_data$data, age == (input$retire_early - 1))
     year_access_nontax <- retire_data$nontax_access
 
     # process data if retire too early - went broke
