@@ -1,3 +1,7 @@
+# Server Code for Calculator
+# Date: July 2017
+# Author: Jenny Nguyen
+# Email: jnnguyen2@wisc.edu
 
 # open libraries
 library(shiny)
@@ -228,7 +232,7 @@ shinyServer(function(input, output) {
       geom_line(size = 1.1) +
       geom_hline(yintercept = 0, size = 1.1, linetype = "dashed", color = "red") +
       facet_grid(~ variable) +
-      labs(x = "Age", y = "Interest Earned ($)", title = "Interested Earned by Age")
+      labs(x = "Age", y = "Interest Earned Per Year ($)", title = "Interested Earned Per Year by Age")
 
   })
 
