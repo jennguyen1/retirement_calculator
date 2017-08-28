@@ -8,7 +8,7 @@ library(shiny)
 library(shinydashboard)
 
 # UI functions
-dashboardPage(
+dashboardPage(skin = "green",
 
   # app title
   dashboardHeader(title = "Retirement Calculator"),
@@ -21,7 +21,7 @@ dashboardPage(
     # inputs
     box(
       title = "Set Input Parameters", width = NULL,
-      solidHeader = TRUE, status = "primary", collapsible = TRUE,
+      solidHeader = TRUE, status = "success", collapsible = TRUE,
 
 
       tabBox(width = NULL, selected = "Input Data",
@@ -61,7 +61,7 @@ dashboardPage(
     # outputs: summary
     box(
       title = "Summary of Results", width = NULL,
-      solidHeader = TRUE, status = "primary", collapsible = TRUE,
+      solidHeader = TRUE, status = "success", collapsible = TRUE,
 
       h4(htmlOutput("summary")),
       downloadButton('downloadData', 'Download')
@@ -70,7 +70,7 @@ dashboardPage(
     # outputs: plots
     box(
       title = "Plots", width = NULL,
-      solidHeader = TRUE, status = "primary",
+      solidHeader = TRUE, status = "success",
       collapsible = TRUE, collapsed = TRUE,
 
       plotOutput("totalPlot"),
