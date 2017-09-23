@@ -146,11 +146,11 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
 
       # taxable account
       tax_interest[1] <- 0
-      tax_total[1] <- tax_principle[1] + tax_interest[1]
+      tax_total[1] <- tax_principle[1] + tax_interest[1] + tax_yearly_add
 
       # nontaxable accounts
       nontax_interest[1] <- 0
-      nontax_total[1] <- nontax_principle[1] + nontax_interest[1]
+      nontax_total[1] <- nontax_principle[1] + nontax_interest[1] + nontax_yearly_add
     }
   }
 
@@ -161,7 +161,8 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
   # create a dataframe for data
   d <- data.frame(year = years_from_25, age,
                   tax_principle = round(tax_principle,2), tax_interest = round(tax_interest,2), tax_total = round(tax_total,2),
-                  nontax_principle = round(nontax_principle,2), nontax_interest = round(nontax_interest,2), nontax_total = round(nontax_total,2))
+                  nontax_principle = round(nontax_principle,2), nontax_interest = round(nontax_interest,2), nontax_total = round(nontax_total,2),
+                  net_worth = round(tax_total + nontax_total, 2))
 
   # return data
   return( list(data = d, nontax_access = year_access_nontax, changed_year_nontax = changed_year_nontax, went_broke_tax = went_broke_tax, went_broke_nontax = went_broke_nontax) )
@@ -172,6 +173,15 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
 # server functions
 shinyServer(function(input, output) {
 
+  min_retire <- reactiveValues(age = 55)
+  observeEvent(input$start_age, {
+    min_retire$age <- input$start_age + 1
+  })
+
+  # set limit on the retire early age (> start age)
+  output$retire_age <- renderUI({
+    numericInput("retire_early", "Retire Age", 55, min = min_retire$age, max = 100)
+  })
 
   # run the retirement calculator
   run_calc <- reactive({
@@ -201,7 +211,7 @@ shinyServer(function(input, output) {
       "Years Working:", input$retire_early - input$start_age, "<br/>",
       "Assets in Taxable Account at RE ($):", d2$tax_total, "<br/>",
       "Assets in Retirement Account at RE ($):", d2$nontax_total, "<br/>",
-      "Assets Total at RE ($):", d2$tax_total + d2$nontax_total, "<br/>",
+      "Assets Total at RE ($):", d2$net_worth, "<br/>",
       "<br/>",
       "Age Retire:", input$retire_early, "<br/>",
       roth_ladder,
