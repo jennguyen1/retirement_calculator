@@ -1,5 +1,11 @@
+# Compound Interest Calculations
+# Date: Oct 2017
+# Author: Jenny Nguyen
+# Email: jnnguyen2@wisc.edu
+
+
 # pre-allocate vector for calculations
-initiate <- function() numeric(length(age))
+initiate <- function(age) numeric(length(age))
 
 # function to calculate retirement
 retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_starting_principle,
@@ -14,12 +20,12 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
   year_access_nontax <- which(access_nontax == age)
 
   # initiate accounts
-  tax_principle <- initiate()
-  tax_interest <- initiate()
-  tax_total <- initiate()
-  nontax_principle <- initiate()
-  nontax_interest <- initiate()
-  nontax_total <- initiate()
+  tax_principle <- initiate(age)
+  tax_interest <- initiate(age)
+  tax_total <- initiate(age)
+  nontax_principle <- initiate(age)
+  nontax_interest <- initiate(age)
+  nontax_total <- initiate(age)
 
   # set account principles
   tax_principle[1] <- tax_starting_principle
@@ -41,7 +47,7 @@ retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_st
     # RESET NONTAX ACCESS - ROTH LADDER #
     #####################################
     if(year > year_retire_early & !changed_year_nontax){ # check if have retired and ran out of money
-      if(tax_total[year - 1] < yearly_spend * 6){ # previous year's taxable account total isn't enough (based on yearly spend)
+      if(tax_total[year - 1] < yearly_spend * 6){ # previous year's taxable account total isn't enough until access nontas
         if(year_access_nontax > (year + 5)){ # adjust if there is need for the roth ladder hack
 
           year_access_nontax <- year + 5

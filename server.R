@@ -12,10 +12,23 @@ library(DT)
 library(ggplot2)
 theme_set(theme_bw())
 
+# pull in code
+source("util.R")
 source("compound_interest_calc.R")
 
 # server functions
 shinyServer(function(input, output) {
+
+  # checks on input
+  input_checks <- reactive({
+    need_vars <- c("growth_rate", "nontax_starting_principle", "nontax_yearly_add", "retire_early", "start_age", "tax_starting_principle", "tax_yearly_add", "yearly_spend")
+    missing_vars <- make_error_msg(!all(need_vars %in% names(input)), "Please provide all requested inputs")
+    neg_vars <- make_error_msg(!all(sapply(need_vars, function(x) input[[x]] >= 0)), "All values must be >= 0")
+    err_perc_growth <- make_error_msg((input$growth_rate < 0 | input$growth_rate > 1), "Growth rate must be between 0 and 1")
+    err_progressive_age <- make_error_msg(input$retire_age <= input$current_age, "Retire age must be less than current age")
+
+    return(list(missing_vars, neg_vars, err_perc_growth, err_progressive_age))
+  })
 
   min_retire <- reactiveValues(age = 55)
   observeEvent(input$start_age, {
@@ -29,44 +42,37 @@ shinyServer(function(input, output) {
 
   # run the retirement calculator
   run_calc <- reactive({
+    checks <- input_checks()
+    throw_error <- check_throw_error(checks)
 
-    retire(
-      start_age = input$start_age, retire_early = input$retire_early,
-      access_nontax = 60, yearly_spend = input$yearly_spend,
-      tax_starting_principle = input$tax_starting_principle, nontax_starting_principle = input$nontax_starting_principle,
-      growth_rate = input$growth_rate, tax_yearly_add = input$tax_yearly_add, nontax_yearly_add = input$nontax_yearly_add
-    )
-
+    if( !any(throw_error) ){
+      retire(
+        start_age = input$start_age, retire_early = input$retire_early,
+        growth_rate = input$growth_rate, yearly_spend = input$yearly_spend,
+        tax_starting_principle = input$tax_starting_principle, nontax_starting_principle = input$nontax_starting_principle,
+        tax_yearly_add = input$tax_yearly_add, nontax_yearly_add = input$nontax_yearly_add
+      )
+    }
   })
 
   # print out summary of results
   output$summary <- renderUI({
 
-    # obtain data
-    age <- input$start_age:100
-    retire_data <- run_calc()
-    d2 <- subset(retire_data$data, age == (input$retire_early - 1))
-    year_access_nontax <- retire_data$nontax_access
+    checks <- input_checks()
+    throw_error <- check_throw_error(checks)
 
-    # process data for Roth Ladder
-    roth_ladder <- ifelse(retire_data$changed_year_nontax, paste("Age Start Roth Ladder:", max(age[year_access_nontax] - 5, input$retire_early + 1), "<br/>"), "")
+    # write error or display summary
+    if( any(throw_error) ){
+      msg <- checks[[which(throw_error)[1]]]
+      HTML(msg)
 
-    # obtain text
-    HTML(paste(
-      "Years Working:", input$retire_early - input$start_age, "<br/>",
-      "Assets in Taxable Account at RE ($):", d2$tax_total, "<br/>",
-      "Assets in Retirement Account at RE ($):", d2$nontax_total, "<br/>",
-      "Assets Total at RE ($):", d2$net_worth, "<br/>",
-      "<br/>",
-      "Age Retire:", input$retire_early, "<br/>",
-      roth_ladder,
-      "Age Access Retirement Accounts:", age[year_access_nontax], "<br/>",
-      retire_data$went_broke_tax, retire_data$went_broke_nontax,
-      "<br/>",
-      "Assets in Taxable Account at 100 ($):", run_calc()$data$tax_total[length(age)], "<br/>",
-      "Assets in Retirement Account at 100 ($):", run_calc()$data$nontax_total[length(age)], "<br/>"
-    ))
+    } else{
+      # obtain data
+      age <- input$start_age:100
+      retire_data <- run_calc()
+      process_summary_data(l = retire_data, age = age, retire_early_age = input$retire_early)
 
+    }
   })
 
   # output data as csv
@@ -79,31 +85,15 @@ shinyServer(function(input, output) {
   plot_data <- reactive( melt(run_calc()$data, id.vars = c("year", "age")) )
 
   output$interestPlot <- renderPlot({
-
-    plot_data() %>%
-      subset(str_detect(variable, "interest")) %>%
-      mutate(variable = factor(ifelse(variable == "tax_interest", "taxable", "nontaxable"), levels = c("taxable", "nontaxable"))) %>%
-      ggplot(aes(age, value)) +
-      geom_line(size = 1.1) +
-      geom_hline(yintercept = 0, size = 1.1, linetype = "dashed", color = "red") +
-      facet_grid(~ variable) +
-      labs(x = "Age", y = "Interest Earned Per Year ($)", title = "Interested Earned Per Year by Age")
-
+    checks <- input_checks()
+    throw_error <- check_throw_error(checks)
+    if( !any(throw_error) ) make_interest_plot( plot_data() )
   })
 
   output$totalPlot <- renderPlot({
-
-
-    plot_data() %>%
-      subset(str_detect(variable, "total")) %>%
-      mutate(variable = factor(ifelse(variable == "tax_total", "taxable", "nontaxable"), levels = c("taxable", "nontaxable"))) %>%
-      ggplot(aes(age, value)) +
-      geom_line(size = 1.1) +
-      geom_hline(yintercept = 0, size = 1.1, linetype = "dashed", color = "red") +
-      facet_grid(~ variable) +
-      labs(x = "Age", y = "Total ($)", title = "Account Assets by Age")
-
+    checks <- input_checks()
+    throw_error <- check_throw_error(checks)
+    if( !any(throw_error) ) make_total_plot( plot_data() )
   })
-
 
 })
