@@ -13,8 +13,8 @@ library(ggplot2)
 theme_set(theme_bw())
 
 # pull in code
-source("util.R")
-source("compound_interest_calc.R")
+source("scripts/util.R")
+source("scripts/compound_interest_calc.R")
 
 # server functions
 shinyServer(function(input, output) {
