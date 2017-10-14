@@ -90,7 +90,7 @@ shinyServer(function(input, output) {
       dat <- l$data %>%
         mutate(
           Notes = case_when(
-            age == input$start_age ~ "working",
+            age == input$start_age ~ "work",
             age == input$retire_early ~ "early retirement via taxable accounts",
             age == l$roth_access & l$roth_access != l$retire_access ~ "early retirement via roth ladder",
             age == l$retire_access ~ "regular retirement via retirement accounts",
