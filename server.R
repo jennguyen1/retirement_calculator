@@ -92,8 +92,8 @@ shinyServer(function(input, output) {
           Notes = case_when(
             age == input$start_age ~ "working",
             age == input$retire_early ~ "early retirement via taxable accounts",
-            age == l$roth_access & l$roth_access != official_nontax_access ~ "early retirement via roth ladder",
-            age == official_nontax_access ~ "regular retirement via retirement accounts",
+            age == l$roth_access & l$roth_access != l$retire_access ~ "early retirement via roth ladder",
+            age == l$retire_access ~ "regular retirement via retirement accounts",
             TRUE ~ ""
         ))
       colnames(dat) <- c("Year", "Age",
@@ -125,7 +125,7 @@ shinyServer(function(input, output) {
     dat <- format_table_for_display(run_calc()$data)
 
     # color the table
-    col <- make_tab_colors(input = input, roth_access_age = run_calc()$roth_access)
+    col <- make_tab_colors(input = input, roth_access_age = run_calc()$roth_access, retire_access_age = run_calc()$retire_access)
     milestones <- col$milestones
     colors <- col$colors
 

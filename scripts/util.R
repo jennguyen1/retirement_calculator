@@ -12,6 +12,7 @@ make_error_msg <- function(condition, msg) ifelse(condition, msg, "")
 # check whether to throw error
 check_throw_error <- function(checks) unlist(lapply(checks, function(x) x != ""))
 
+
 # summary of results
 process_summary_data <- function(l, age, retire_early_age, official_nontax_access_age = official_nontax_access){
 
@@ -21,7 +22,7 @@ process_summary_data <- function(l, age, retire_early_age, official_nontax_acces
 
   # process data for Roth Ladder
   roth_ladder <- ifelse(
-    l$changed_year_nontax,
+    age_access_nontax < official_nontax_access_age,
     paste("Age Start Roth Ladder:", max(age_access_nontax - 5, retire_early_age), "<br/>"),
     ""
   )
@@ -54,6 +55,7 @@ process_summary_data <- function(l, age, retire_early_age, official_nontax_acces
     "Assets Total at 100 ($): ${bal_at_100}<br/>" %>% str_interp()
   ))
 }
+
 
 # make interest plot
 make_interest_plot <- function(d, yearly_spend){
@@ -107,14 +109,16 @@ format_table_for_display <- function(d){
   return(dat)
 }
 
-
 # make table colors
-make_tab_colors <- function(input, roth_access_age){
+make_tab_colors <- function(input, roth_access_age, retire_access_age){
 
+
+  # index 1/2/3 may be equal if
+  # index 2/3 may be equal if
   milestones <- c(
     input$retire_early-1,
     roth_access_age-1,
-    official_nontax_access-1,
+    retire_access_age-1,
     100
   ) %>% unique()
 
@@ -125,7 +129,6 @@ make_tab_colors <- function(input, roth_access_age){
 
   return(list(milestones = milestones, colors = milestone_colors))
 }
-
 
 # format table header
 format_header <- function(){
