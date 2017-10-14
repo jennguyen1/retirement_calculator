@@ -4,156 +4,221 @@
 # Email: jnnguyen2@wisc.edu
 
 
-# pre-allocate vector for calculations
-initiate <- function(age) numeric(length(age))
+# CALCULATIONS UTILTY FUNCTIONS
+# ---------------------------------------------
 
-# function to calculate retirement
-retire <- function(retire_early, yearly_spend, tax_starting_principle, nontax_starting_principle,
-                   start_age = 25, access_nontax = 60,
-                   growth_rate = 0.05, tax_yearly_add = 0, nontax_yearly_add = 0
+# compound interest formula with annual contribution (made at start of compounding period)
+formula <- function(n, principle, contribution, interest_rate){
+  if(!dplyr::between(interest_rate, 0, 1)) stop("Interest rate must be between 0 and 1")
+
+  r <- 1 + interest_rate
+  val <- principle * r ^ (n) + contribution * r * (1 - r ^ n) / (1 - r)
+  return(val)
+}
+
+
+# compute the total, principle, and interest; convert all neg values to 0
+apply_calculations <- function(n, principle, contribution, interest_rate, label){
+
+  tot <- formula(n, principle, contribution, interest_rate)
+  interest <- diff(c(principle, tot)) - contribution
+  principle <- tot - interest
+
+  out <- data.frame(principle = principle, interest = interest, total = tot) %>%
+    mutate_all(~ ifelse(.x < 0, 0, .x))
+  colnames(out) <- paste(label, colnames(out), sep = "_")
+  return(out)
+}
+
+
+# accumulation years: start contributions on start_age year
+accumulate <- function(
+  start_age, retire_age,
+  tax_starting_principle, nontax_starting_principle,
+  tax_yearly_add, nontax_yearly_add,
+  growth_rate
 ){
 
-  # initialize parameters
-  age <- start_age:100
-  years_from_25 <- 1:length(age)
-  year_retire_early <- which(retire_early == age)
-  year_access_nontax <- which(access_nontax == age)
+  age <- start_age:(retire_age - 1)
+  index <- 1:length(age)
 
-  # initiate accounts
-  tax_principle <- initiate(age)
-  tax_interest <- initiate(age)
-  tax_total <- initiate(age)
-  nontax_principle <- initiate(age)
-  nontax_interest <- initiate(age)
-  nontax_total <- initiate(age)
+  tax_accounts <- apply_calculations(
+    n = index,
+    principle = tax_starting_principle, contribution = tax_yearly_add,
+    interest_rate = growth_rate, label = "tax"
+  )
+  nontax_accounts <- apply_calculations(
+    n = index,
+    principle = nontax_starting_principle, contribution = nontax_yearly_add,
+    interest_rate = growth_rate, label = "nontax"
+  )
 
-  # set account principles
-  tax_principle[1] <- tax_starting_principle
-  nontax_principle[1] <- nontax_starting_principle
+  # balances up until retirement
+  dat <- bind_cols(age = age, tax_accounts, nontax_accounts)
+  return(dat)
+}
 
-  # set variable for changing withdrawals from accounts
-  changed_year_nontax <- FALSE
 
-  # variable if ran out of money
-  went_broke_tax <- FALSE
-  went_broke_nontax <- FALSE
-  went_broke_tax_age <- 0
-  went_broke_nontax_age <- 0
+# early retirement years: start withdrawals on retire_age; from tax account only
+early_retire <- function(
+  in_dat,
+  retire_age, age_access_nontax,
+  yearly_spend, growth_rate
+){
 
-  # calculate account values
-  for(year in years_from_25){
+  age <- retire_age:age_access_nontax
+  index <- 1:length(age)
+  bal_before_retire <- tail(in_dat, 1)
 
-    #####################################
-    # RESET NONTAX ACCESS - ROTH LADDER #
-    #####################################
-    if(year > year_retire_early & !changed_year_nontax){ # check if have retired and ran out of money
-      if(tax_total[year - 1] < yearly_spend * 6){ # previous year's taxable account total isn't enough until access nontas
-        if(year_access_nontax > (year + 5)){ # adjust if there is need for the roth ladder hack
+  tax_accounts <- apply_calculations(
+    n = index,
+    principle = bal_before_retire$tax_total, contribution = -yearly_spend,
+    interest_rate = growth_rate, label = "tax"
+  )
 
-          year_access_nontax <- year + 5
-          changed_year_nontax <- TRUE
+  nontax_accounts <- apply_calculations(
+    n = index,
+    principle = bal_before_retire$nontax_total, contribution = 0,
+    interest_rate = growth_rate, label = "nontax"
+  )
 
-        }
-      }
-    }
+  dat <- bind_cols(age = age, tax_accounts, nontax_accounts)
+  return(dat)
+}
 
-    ##################
-    # REGULAR RETIRE #
-    ##################
-    if(year == year_access_nontax){
 
-      # taxable account
-      tax_principle[year] <- 0
-      tax_interest[year] <- 0
-      tax_total[year] <- 0
+# check early retirement years; need roth conversion? went broke in tax account?
+# went broke flag has a 1 year of spend buffer
+early_retirement_checks <- function(in_dat1, in_dat2, yearly_spend, access_nontax_age){
 
-      # nontaxable accounts
-      nontax_principle[year] <- tax_total[year - 1] + nontax_total[year - 1]
-      nontax_interest[year] <- nontax_principle[year] * growth_rate
-      nontax_total[year] <- max(nontax_principle[year] + nontax_interest[year] - yearly_spend, 0)
+  # check for roth conversion
+  roth_check <- tail(subset(in_dat2, tax_total >= yearly_spend * 6), 1)
+  roth_age <- roth_check$age + 5
+  new_access_age <- ifelse(access_nontax_age > roth_age, roth_age, access_nontax_age)
+  pre_nontax_dat <- subset(in_dat2, age < new_access_age)
 
-      # went broke: run out of money in nontax as well
-      if(!went_broke_nontax & nontax_total[year] == 0){
-        went_broke_nontax <- TRUE
-        went_broke_nontax_age <- age[year]
-      }
-
-    } else if(year > year_access_nontax){
-
-      # nontaxable accounts
-      nontax_principle[year] <- nontax_total[year - 1]
-      nontax_interest[year] <- nontax_principle[year] * growth_rate
-      nontax_total[year] <- max(nontax_principle[year] + nontax_interest[year] - yearly_spend, 0)
-
-      # went broke: run out of money in nontax as well
-      if(!went_broke_nontax & nontax_total[year] == 0){
-        went_broke_nontax <- TRUE
-        went_broke_nontax_age <- age[year]
-      }
-
-      ################
-      # EARLY RETIRE #
-      ################
-    } else if(year >= year_retire_early){
-
-      # taxable account
-      tax_principle[year] <- tax_total[year - 1]
-      tax_interest[year] <- tax_principle[year] * growth_rate
-      tax_total[year] <- max(tax_principle[year] + tax_interest[year] - yearly_spend, 0)
-
-      # went broke: ran out of money before being able to access retirement funds
-      went_broke_tax <- ifelse(tax_total[year] == 0, TRUE, FALSE)
-      if(went_broke_tax){
-        year_access_nontax <- year
-        changed_year_nontax <- TRUE
-        went_broke_tax_age <- age[year]
-      }
-
-      # nontaxable accounts
-      nontax_principle[year] <- nontax_total[year - 1]
-      nontax_interest[year] <- nontax_principle[year] * growth_rate
-      nontax_total[year] <- nontax_principle[year] + nontax_interest[year]
-
-      #################
-      # WORKING YEARS #
-      #################
-    } else if(year != 1){
-
-      # taxable account
-      tax_principle[year] <- tax_total[year - 1] + tax_yearly_add
-      tax_interest[year] <- tax_principle[year] * growth_rate
-      tax_total[year] <- tax_principle[year] + tax_interest[year]
-
-      # nontaxable accounts
-      nontax_principle[year] <- nontax_total[year - 1] + nontax_yearly_add
-      nontax_interest[year] <- nontax_principle[year] * growth_rate
-      nontax_total[year] <- nontax_principle[year] + nontax_interest[year]
-
-      ##############
-      # INITIALIZE #
-      ##############
-    } else if(year == 1){
-
-      # taxable account
-      tax_interest[1] <- 0
-      tax_total[1] <- tax_principle[1] + tax_interest[1] + tax_yearly_add
-
-      # nontaxable accounts
-      nontax_interest[1] <- 0
-      nontax_total[1] <- nontax_principle[1] + nontax_interest[1] + nontax_yearly_add
+  # check for premature switch to nontax accounts
+  went_broke <- any(tail(pre_nontax_dat, 1)$tax_total < yearly_spend, nrow(roth_check) == 0)
+  if( went_broke ){
+    if( nrow(roth_check) == 0 ){
+      pre_nontax_dat <- in_dat1
+      new_access_age <- tail(in_dat1, 1)$age + 1
+    } else{
+      pre_nontax_dat <- subset(pre_nontax_dat, tax_total >= yearly_spend)
+      new_access_age <- tail(pre_nontax_dat, 1)$age + 1
     }
   }
 
-  # process taxable amount
-  went_broke_tax <- ifelse(went_broke_tax, paste("Warning: ran out of money in taxable account at", went_broke_tax_age, "; must access retirement accounts early<br/>"), "")
-  went_broke_nontax <- ifelse(went_broke_nontax, paste("Warning: ran out of money in retirement accounts at", went_broke_nontax_age, "; consider working longer<br/>"), "")
+  out <- list(dat = pre_nontax_dat, access_age = new_access_age, went_broke = went_broke)
+  return(out)
+}
 
-  # create a dataframe for data
-  d <- data.frame(year = years_from_25, age,
-                  tax_principle = round(tax_principle,2), tax_interest = round(tax_interest,2), tax_total = round(tax_total,2),
-                  nontax_principle = round(nontax_principle,2), nontax_interest = round(nontax_interest,2), nontax_total = round(nontax_total,2),
-                  net_worth = round(tax_total + nontax_total, 2))
+
+# regular retirement years: start withdrawals at roth age; from nontax account only, transfer tax account into nontax account
+regular_retire <- function(
+  in_dat,
+  roth_age, yearly_spend,
+  growth_rate
+){
+
+  age <- roth_age:100
+  index <- 1:length(age)
+  bal_before_retire <- tail(in_dat, 1)
+  principle_after_transfer <- bal_before_retire$tax_total + bal_before_retire$nontax_total
+
+  nontax_accounts <- apply_calculations(
+    n = index,
+    principle = principle_after_transfer, contribution = -yearly_spend,
+    interest_rate = growth_rate, label = "nontax"
+  )
+
+  dat <- bind_cols(age = age, nontax_accounts)
+  return(dat)
+}
+
+
+
+# RETIREMENT DATA CALCULATIONS
+# ---------------------------------------------
+
+# function to calculate retirement
+retire <- function(
+  retire_age, yearly_spend, tax_starting_principle, nontax_starting_principle,
+  start_age = 25, access_nontax_age = 60,
+  growth_rate = 0.05, tax_yearly_add = 0, nontax_yearly_add = 0
+){
+
+
+  # working years - build portfolio
+  accumulate_data <- accumulate(
+    start_age = start_age,
+    retire_age = retire_age,
+    tax_starting_principle = tax_starting_principle,
+    nontax_starting_principle = nontax_starting_principle,
+    tax_yearly_add = tax_yearly_add,
+    nontax_yearly_add = nontax_yearly_add,
+    growth_rate = growth_rate
+  )
+
+  # early retirement years - withdraw from tax account
+  early_retire_data <- early_retire(
+    in_dat = accumulate_data,
+    retire_age = retire_age,
+    age_access_nontax = access_nontax_age,
+    yearly_spend = yearly_spend,
+    growth_rate = growth_rate
+  )
+
+  # check tax account for whether you need a roth conversion
+  early_retire_fix <- early_retirement_checks(
+    in_dat1 = accumulate_data,
+    in_dat2 = early_retire_data,
+    yearly_spend = yearly_spend,
+    access_nontax_age = access_nontax_age
+  )
+  early_retire_data <- early_retire_fix$dat
+  access_age <- early_retire_fix$access_age
+  went_broke_tax <- early_retire_fix$went_broke
+
+  # regular retirement years - withdraw from nontax account
+  regular_retire_data <- regular_retire(
+    in_dat = early_retire_data,
+    roth_age = access_age,
+    yearly_spend = yearly_spend,
+    growth_rate = growth_rate
+  )
+
+  # combine datasets; convert negative numbers and NAs to 0
+  if( identical(accumulate_data, early_retire_data) ){
+    combined <- bind_rows(accumulate_data, regular_retire_data)
+  } else{
+    combined <- bind_rows(accumulate_data, early_retire_data, regular_retire_data)
+  }
+  combined_data <- combined %>%
+    mutate_all(~ ifelse(is.na(.x), 0, .x)) %>%
+    mutate(net_worth = tax_total + nontax_total) %>%
+    mutate(year = 1:nrow(.)) %>%
+    dplyr::select(year, everything())
+
+  # check on retirement money
+  went_broke_check <- head(subset(combined_data, nontax_total == 0))
+  went_broke_nontax <- nrow(went_broke_check) > 0
+  went_broke_age <- max(went_broke_check$age, access_age)
+
+  # process tax amount
+  went_broke_tax <- ifelse(went_broke_tax, str_interp("Warning: ran out of money at ${access_age}; must access retirement accounts early<br/>"), "")
+  went_broke_nontax <- ifelse(went_broke_nontax, str_interp("Warning: ran out of money at ${went_broke_age}; consider working longer or saving more<br/>"), "")
+
+  # formatting
+  d <- mutate_at(combined_data, vars(-age), ~ round(.x, 2))
+  out <- list(
+    data = d,
+    nontax_access = access_age,
+    changed_year_nontax = access_age < access_nontax_age,
+    went_broke_tax = went_broke_tax,
+    went_broke_nontax = went_broke_nontax
+  )
 
   # return data
-  return( list(data = d, nontax_access = year_access_nontax, changed_year_nontax = changed_year_nontax, went_broke_tax = went_broke_tax, went_broke_nontax = went_broke_nontax) )
+  return(out)
 }
