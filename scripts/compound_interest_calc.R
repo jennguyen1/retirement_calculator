@@ -94,9 +94,9 @@ early_retirement_checks <- function(in_dat1, in_dat2, yearly_spend, access_nonta
 
   # check for roth conversion
   roth_check <- tail(subset(in_dat2, tax_total >= yearly_spend * 6), 1)
-  roth_age <- roth_check$age + 5
+  roth_age <- roth_check$age + 5 + 1 # since we are using values at end of year, application of roth ladder begins the next year
   new_access_age <- ifelse(access_nontax_age > roth_age, roth_age, access_nontax_age)
-  pre_nontax_dat <- in_dat2
+  pre_nontax_dat <- subset(in_dat2, age < new_access_age)
 
   # check for premature switch to nontax accounts
   went_broke <- any(tail(pre_nontax_dat, 1)$tax_total < yearly_spend, nrow(roth_check) == 0)
@@ -201,7 +201,7 @@ retire <- function(
   # regular retirement years - withdraw from nontax account
   regular_retire_data <- regular_retire(
     in_dat = early_retire_data,
-    access_age = ifelse(went_broke_tax, access_age, access_nontax_age),
+    access_age = access_age,
     yearly_spend = yearly_spend,
     growth_rate = growth_rate
   )
@@ -215,7 +215,7 @@ retire <- function(
   went_broke_age <- max(went_broke_check$age, access_age)
 
   # process tax amount
-  went_broke_tax_msg <- ifelse(went_broke_tax, str_interp("Warning: ran out of money at ${access_age}; must access retirement accounts early<br/>"), "")
+  went_broke_tax_msg <- ifelse(went_broke_tax, str_interp("Warning: ran out of money at ${access_age}; must access retirement accounts prematurely<br/>"), "")
   went_broke_nontax_msg <- ifelse(went_broke_nontax, str_interp("Warning: ran out of money at ${went_broke_age}; consider working longer or saving more<br/>"), "")
 
   # formatting
