@@ -66,7 +66,7 @@ early_retire <- function(
   yearly_spend, growth_rate
 ){
 
-  age <- retire_age:age_access_nontax
+  age <- retire_age:(age_access_nontax - 1)
   index <- 1:length(age)
   bal_before_retire <- tail(in_dat, 1)
 
@@ -87,15 +87,16 @@ early_retire <- function(
 }
 
 
-# check early retirement years; need roth conversion? went broke in tax account?
-# went broke flag has a 1 year of spend buffer
+# check early retirement years;
+# need roth conversion? check for roth conversion only after you have retired (cuz taxes)
+# went broke in tax account? went broke flag has a 1 year of spend buffer
 early_retirement_checks <- function(in_dat1, in_dat2, yearly_spend, access_nontax_age){
 
   # check for roth conversion
   roth_check <- tail(subset(in_dat2, tax_total >= yearly_spend * 6), 1)
   roth_age <- roth_check$age + 5
   new_access_age <- ifelse(access_nontax_age > roth_age, roth_age, access_nontax_age)
-  pre_nontax_dat <- subset(in_dat2, age < new_access_age)
+  pre_nontax_dat <- in_dat2
 
   # check for premature switch to nontax accounts
   went_broke <- any(tail(pre_nontax_dat, 1)$tax_total < yearly_spend, nrow(roth_check) == 0)
@@ -117,11 +118,11 @@ early_retirement_checks <- function(in_dat1, in_dat2, yearly_spend, access_nonta
 # regular retirement years: start withdrawals at roth age; from nontax account only, transfer tax account into nontax account
 regular_retire <- function(
   in_dat,
-  roth_age, yearly_spend,
+  access_age, yearly_spend,
   growth_rate
 ){
 
-  age <- roth_age:100
+  age <- access_age:100
   index <- 1:length(age)
   bal_before_retire <- tail(in_dat, 1)
   principle_after_transfer <- bal_before_retire$tax_total + bal_before_retire$nontax_total
@@ -183,7 +184,7 @@ retire <- function(
   # regular retirement years - withdraw from nontax account
   regular_retire_data <- regular_retire(
     in_dat = early_retire_data,
-    roth_age = access_age,
+    access_age = ifelse(went_broke_tax, access_age, access_nontax_age),
     yearly_spend = yearly_spend,
     growth_rate = growth_rate
   )
