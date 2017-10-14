@@ -32,7 +32,7 @@ dashboardPage(skin = "green",
           p("During the working years, the ", span(strong("Amount Added")), " value is added at the beginning of the year and compounded at the end of the year. Interest is calculated at a rate of ", span(strong("Growth Rate")), ". I recommend using an interest rate that has been adjusted for inflation."),
           p("After the ", span(strong("Retire Age")), ", the ", span(strong("Amount Added")), " value is reduced to 0 and the accounts continue to earn interest at the specified rate. In addition, the ", span(strong("Spending per Year")), " amount is deducted from the total. The ", span(strong("Spending per Year")), " is withdrawn from the taxable accounts until it is critically low and after which withdrawals switch to the retirement accounts. The age for withdrawal from retirement accounts without penalty is 60 (rounded up from 59.5). If it is likely that the taxable accounts are depleted before then, there is the option to apply the Roth Ladder Conversion."),
           p("The program uses the following algorithm for determining if a Roth Ladder Conversion is needed and when it should be applied. If the taxable accounts total is less than 6 times the spending per year and there are more than 5 years before one can access the retirement accounts without penalty, then the program recommends starting the Roth Ladder on that year so that the funds can be accessed 5 years later. The program will issue a warning if the taxable account balances are too low to sustain the spending per year for 5 years necessary to adequately setup the Roth Ladder. Once the retirement accounts can be accessed at age 60, the taxable account balances are transferred to the retirement accounts and all further withdrawals occur in the retirement accounts. The program will issue a warning if the retirement accounts are depleted before age 100."),
-          p("The program projects balances until age 100. A summary of results will be printed out and a csv file of yearly account details will be available for download in the ", span(strong("Summary of Results")), " tab. The ", span(strong("Plots")), " tab contains plots of ", span(strong("Account Totals by Age")), " for each respective account type as well as ", span(strong("Interest Earned Per Year by Age")), ".")
+          p("The program projects balances until age 100. A summary of results is printed in the ", span(strong("Summary of Results")), " tab. The ", span(strong("Plots")), " tab contains plots of ", span(strong("Account Totals by Age")), " for each respective account type as well as ", span(strong("Interest Earned Per Year by Age")), ". A detailed table is printed and available for download in the ", span(strong("Detailed Results")), "tab.")
         ),
 
         tabPanel("Input Data",
@@ -78,7 +78,7 @@ dashboardPage(skin = "green",
     ),
 
     box(
-      title = "Detailed Summary", width = NULL,
+      title = "Detailed Results", width = NULL,
       solidHeader = TRUE, status = "success",
       collapsible = TRUE, collapsed = TRUE,
 
