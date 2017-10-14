@@ -93,8 +93,9 @@ early_retire <- function(
 early_retirement_checks <- function(in_dat1, in_dat2, yearly_spend, access_nontax_age){
 
   # check for roth conversion
-  roth_check <- tail(subset(in_dat2, tax_total >= yearly_spend * 6), 1)
-  roth_age <- roth_check$age + 5 + 1 # since we are using values at end of year, application of roth ladder begins the next year
+  check_dat <- bind_rows(tail(in_dat1, 1), in_dat2)
+  roth_check <- tail(subset(check_dat, tax_total >= yearly_spend * 6), 1)
+  roth_age <- roth_check$age + 5 + 1 # since values at end of year, application of roth ladder begins the next year
   new_access_age <- ifelse(access_nontax_age > roth_age, roth_age, access_nontax_age)
   pre_nontax_dat <- subset(in_dat2, age < new_access_age)
 
