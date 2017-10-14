@@ -3,15 +3,21 @@
 # Author: Jenny Nguyen
 # Email: jnnguyen2@wisc.edu
 
+# global official nontax access age
+official_nontax_access <- 60
+
+# error messages
 make_error_msg <- function(condition, msg) ifelse(condition, msg, "")
 
+# check whether to throw error
 check_throw_error <- function(checks) unlist(lapply(checks, function(x) x != ""))
 
-process_summary_data <- function(l, age, retire_early_age, official_nontax_access_age = 60){
+# summary of results
+process_summary_data <- function(l, age, retire_early_age, official_nontax_access_age = official_nontax_access){
 
   d <- l$data
   d2 <- subset(d, age == (retire_early_age - 1))
-  age_access_nontax <- l$nontax_access
+  age_access_nontax <- l$roth_access
 
   # process data for Roth Ladder
   roth_ladder <- ifelse(
@@ -35,7 +41,7 @@ process_summary_data <- function(l, age, retire_early_age, official_nontax_acces
 
   # obtain text
   HTML(paste(
-    "Years Working: ${{retire_early_age - age[1]}}<br/>" %>% str_interp(),
+    "Years Working: ${{retire_early_age - age[1] - 1}}<br/>" %>% str_interp(),
     "Assets in Taxable Account at RE ($): ${tax_total}<br/>" %>% str_interp(),
     "Assets in Retirement Account at RE ($): ${nontax_total}<br/>" %>% str_interp(),
     "Assets Total at RE ($): ${networth_total}<br/>" %>% str_interp(),
@@ -49,6 +55,7 @@ process_summary_data <- function(l, age, retire_early_age, official_nontax_acces
   ))
 }
 
+# make interest plot
 make_interest_plot <- function(d, yearly_spend){
 
   plot_data <- d %>%
@@ -69,6 +76,7 @@ make_interest_plot <- function(d, yearly_spend){
 
 }
 
+# make total balances plot
 make_total_plot <- function(d){
 
   plot_data <- d %>%
@@ -86,3 +94,57 @@ make_total_plot <- function(d){
     scale_y_continuous(limits = c(0, ymax))
 
 }
+
+
+# format table for display
+format_table_for_display <- function(d){
+
+  dat <- d %>%
+    mutate_at(vars(-year, -age), ~ round(.x)) %>%
+    dplyr::select(age, tax_principle, tax_interest, tax_total, nontax_principle, nontax_interest, nontax_total, net_worth)
+  colnames(dat) <- c("Age", "Tax Accounts Principle", "Tax Accounts Interest", "Tax Accounts Total", "Retirement Accounts Principle", "Retirement Accounts Interest", "Retirement Accounts Total", "Net Worth")
+
+  return(dat)
+}
+
+
+# make table colors
+make_tab_colors <- function(input, roth_access_age){
+
+  milestones <- c(
+    input$retire_early-1,
+    roth_access_age-1,
+    official_nontax_access-1,
+    100
+  ) %>% unique()
+
+  work_color <- "white"
+  early_retire_color <- c("rgba(66, 134, 244, 0.4)", "rgba(43, 198, 48, 0.4)")
+  reg_retire_color <- "rgba(43, 198, 48, 0.8)"
+  milestone_colors <- c(work_color, early_retire_color[1:(length(milestones)-2)], reg_retire_color, "white")
+
+  return(list(milestones = milestones, colors = milestone_colors))
+}
+
+
+# format table header
+format_header <- function(){
+
+  sketch <- htmltools::withTags(table(
+    class = 'display',
+    thead(
+      tr(
+        th(rowspan = 2, 'Age'),
+        th(colspan = 3, 'Taxable Accounts'),
+        th(colspan = 3, 'Retirement Accounts'),
+        th(rowspan = 2, 'Net Worth')
+      ),
+      tr(
+        lapply(rep(c("Principle", "Interest", "Total"), 2), th)
+      )
+    )
+  ))
+
+  return(sketch)
+}
+

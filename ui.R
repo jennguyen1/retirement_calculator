@@ -63,8 +63,7 @@ dashboardPage(skin = "green",
       title = "Summary of Results", width = NULL,
       solidHeader = TRUE, status = "success", collapsible = TRUE,
 
-      h4(htmlOutput("summary")),
-      downloadButton('downloadData', 'Download')
+      h4(htmlOutput("summary"))
     ),
 
     # outputs: plots
@@ -75,6 +74,20 @@ dashboardPage(skin = "green",
 
       plotOutput("totalPlot"),
       plotOutput("interestPlot")
+
+    ),
+
+    box(
+      title = "Detailed Summary", width = NULL,
+      solidHeader = TRUE, status = "success",
+      collapsible = TRUE, collapsed = TRUE,
+
+      downloadButton('downloadData', 'Download'),
+      p(),
+      dataTableOutput("table"),
+
+      p(),
+      p(span(strong("white")), " = working; ", span(strong("blue")), " = early retirement via taxable accounts; ", span(strong("light green")), " = early retirement via from roth ladder; ", span(strong("green")), " = regular retirement via retirement accounts")
     )
   ))
 )

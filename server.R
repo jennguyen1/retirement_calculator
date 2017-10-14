@@ -7,8 +7,10 @@
 library(shiny)
 library(stringr)
 library(dplyr)
+library(purrr)
 library(reshape2)
 library(DT)
+library(htmltools)
 library(ggplot2)
 theme_set(theme_bw(base_size = 16))
 
@@ -81,9 +83,25 @@ shinyServer(function(input, output) {
 
   # output data as csv
   output$downloadData <- downloadHandler(
-    filename = function() paste0("Retire_at_", input$retire_early, "_spending_", input$yearly_spend, "_at_", input$growth_rate, "_growth", ".csv"),
-    content = function(file) write.csv(run_calc()$data, file, row.names = FALSE)
-  )
+    filename = function() str_interp("Retire_at_${{input$retire_early}}_spending_${{input$yearly_spend}}_at_${{input$growth_rate}}.csv"),
+    content = function(file) {
+
+      l <- run_calc()
+      dat <- l$data %>%
+        mutate(
+          Notes = case_when(
+            age == input$start_age ~ "working",
+            age == input$retire_early ~ "early retirement via taxable accounts",
+            age == l$roth_access & l$roth_access != official_nontax_access ~ "early retirement via roth ladder",
+            age == official_nontax_access ~ "regular retirement via retirement accounts",
+            TRUE ~ ""
+        ))
+      colnames(dat) <- c("Year", "Age",
+                         "Tax Accounts Principle", "Tax Accounts Interest", "Tax Accounts Total",
+                         "Retirement Accounts Principle", "Retirement Accounts Interest", "Retirement Accounts Total",
+                         "Net Worth", "Notes")
+      write.csv(dat, file, row.names = FALSE)
+  })
 
   # generate plots
   plot_data <- reactive( melt(run_calc()$data, id.vars = c("year", "age")) )
@@ -98,6 +116,45 @@ shinyServer(function(input, output) {
     checks <- input_checks()
     throw_error <- check_throw_error(checks)
     if( !any(throw_error) ) make_total_plot( plot_data() )
+  })
+
+  # tables
+  output$table <- renderDataTable({
+
+    # obtain the data
+    dat <- format_table_for_display(run_calc()$data)
+
+    # color the table
+    col <- make_tab_colors(input = input, roth_access_age = run_calc()$roth_access)
+    milestones <- col$milestones
+    colors <- col$colors
+
+    # format header
+    sketch = format_header()
+
+    #' render the table
+    datatable(dat,
+      rownames = FALSE,
+      container = sketch,
+      extensions = "Buttons",
+      options = list(
+        dom = "Bt",
+        ordering = FALSE,
+        buttons = I('colvis'),
+        scrollX = TRUE, scrollY = 400,
+        pageLength = 200
+      )
+    ) %>%
+
+      # format currencies
+      formatCurrency(purrr::discard(colnames(dat), ~ .x == "Age"), digits = 0) %>%
+
+      # color rows based on retirement stage
+      formatStyle(
+        "Age",
+        target = "row",
+        backgroundColor = styleInterval(milestones, colors)
+      )
   })
 
 })
