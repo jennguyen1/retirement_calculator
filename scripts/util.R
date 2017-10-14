@@ -113,9 +113,9 @@ format_table_for_display <- function(d){
 # make table colors
 make_tab_colors <- function(input, roth_access_age, retire_access_age){
 
-
-  # index 1/2/3 may be equal if
-  # index 2/3 may be equal if # TODO
+  # index 1/2/3 may be equal if not enough $ in taxable account; need to access nontax right away
+  # index 1/2 may be equal if not enough $ in taxable account; need to access nontax early (few years after retire)
+  # index 2/3 may be equal if enough $ in taxable accounts; don't need roth ladder to reach nontax access
   milestones <- c(
     input$retire_early-1,
     roth_access_age-1,
@@ -125,8 +125,8 @@ make_tab_colors <- function(input, roth_access_age, retire_access_age){
 
   work_color <- "white"
   early_retire_color <- c("rgba(66, 134, 244, 0.4)", "rgba(43, 198, 48, 0.4)")
-  reg_retire_color <- "rgba(43, 198, 48, 0.8)"
-  milestone_colors <- c(work_color, early_retire_color[1:(length(milestones)-2)], reg_retire_color, "white")
+  reg_retire_color <- "rgba(43, 198, 48, 0.7)"
+  milestone_colors <- c(work_color, early_retire_color[0:(length(milestones)-2)], reg_retire_color, "white")
 
   return(list(milestones = milestones, colors = milestone_colors))
 }
