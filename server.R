@@ -10,7 +10,7 @@ library(dplyr)
 library(reshape2)
 library(DT)
 library(ggplot2)
-theme_set(theme_bw())
+theme_set(theme_bw(base_size = 16))
 
 # pull in code
 source("scripts/util.R")
@@ -47,10 +47,14 @@ shinyServer(function(input, output) {
 
     if( !any(throw_error) ){
       retire(
-        start_age = input$start_age, retire_early = input$retire_early,
-        growth_rate = input$growth_rate, yearly_spend = input$yearly_spend,
-        tax_starting_principle = input$tax_starting_principle, nontax_starting_principle = input$nontax_starting_principle,
-        tax_yearly_add = input$tax_yearly_add, nontax_yearly_add = input$nontax_yearly_add
+        start_age = input$start_age,
+        retire_age = input$retire_early,
+        growth_rate = input$growth_rate,
+        yearly_spend = input$yearly_spend,
+        tax_starting_principle = input$tax_starting_principle,
+        nontax_starting_principle = input$nontax_starting_principle,
+        tax_yearly_add = input$tax_yearly_add,
+        nontax_yearly_add = input$nontax_yearly_add
       )
     }
   })
@@ -87,7 +91,7 @@ shinyServer(function(input, output) {
   output$interestPlot <- renderPlot({
     checks <- input_checks()
     throw_error <- check_throw_error(checks)
-    if( !any(throw_error) ) make_interest_plot( plot_data() )
+    if( !any(throw_error) ) make_interest_plot( plot_data(), input$yearly_spend )
   })
 
   output$totalPlot <- renderPlot({
