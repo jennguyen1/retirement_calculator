@@ -138,6 +138,24 @@ regular_retire <- function(
 }
 
 
+# combine data sets across stages; convert neg numbers & NAs to 0
+combine_retire_data <- function(accumulate_data, early_retire_data, regular_retire_data){
+
+  if( identical(accumulate_data, early_retire_data) ){
+    combined <- bind_rows(accumulate_data, regular_retire_data)
+  } else{
+    combined <- bind_rows(accumulate_data, early_retire_data, regular_retire_data)
+  }
+  combined_data <- combined %>%
+    mutate_all(~ ifelse(is.na(.x), 0, .x)) %>%
+    mutate(net_worth = tax_total + nontax_total) %>%
+    mutate(year = 1:nrow(.)) %>%
+    dplyr::select(year, everything())
+
+  return(combined_data)
+}
+
+
 
 # RETIREMENT DATA CALCULATIONS
 # ---------------------------------------------
@@ -145,10 +163,9 @@ regular_retire <- function(
 # function to calculate retirement
 retire <- function(
   retire_age, yearly_spend, tax_starting_principle, nontax_starting_principle,
-  start_age = 25, access_nontax_age = 60,
+  start_age = 25, access_nontax_age = official_nontax_access,
   growth_rate = 0.05, tax_yearly_add = 0, nontax_yearly_add = 0
 ){
-
 
   # working years - build portfolio
   accumulate_data <- accumulate(
@@ -189,17 +206,8 @@ retire <- function(
     growth_rate = growth_rate
   )
 
-  # combine datasets; convert negative numbers and NAs to 0
-  if( identical(accumulate_data, early_retire_data) ){
-    combined <- bind_rows(accumulate_data, regular_retire_data)
-  } else{
-    combined <- bind_rows(accumulate_data, early_retire_data, regular_retire_data)
-  }
-  combined_data <- combined %>%
-    mutate_all(~ ifelse(is.na(.x), 0, .x)) %>%
-    mutate(net_worth = tax_total + nontax_total) %>%
-    mutate(year = 1:nrow(.)) %>%
-    dplyr::select(year, everything())
+  # combine datasets
+  combined_data <- combine_retire_data(accumulate_data, early_retire_data, regular_retire_data)
 
   # check on retirement money
   went_broke_check <- head(subset(combined_data, nontax_total == 0))
@@ -207,17 +215,17 @@ retire <- function(
   went_broke_age <- max(went_broke_check$age, access_age)
 
   # process tax amount
-  went_broke_tax <- ifelse(went_broke_tax, str_interp("Warning: ran out of money at ${access_age}; must access retirement accounts early<br/>"), "")
-  went_broke_nontax <- ifelse(went_broke_nontax, str_interp("Warning: ran out of money at ${went_broke_age}; consider working longer or saving more<br/>"), "")
+  went_broke_tax_msg <- ifelse(went_broke_tax, str_interp("Warning: ran out of money at ${access_age}; must access retirement accounts early<br/>"), "")
+  went_broke_nontax_msg <- ifelse(went_broke_nontax, str_interp("Warning: ran out of money at ${went_broke_age}; consider working longer or saving more<br/>"), "")
 
   # formatting
   d <- mutate_at(combined_data, vars(-age), ~ round(.x, 2))
   out <- list(
     data = d,
-    nontax_access = access_age,
-    changed_year_nontax = access_age < access_nontax_age,
-    went_broke_tax = went_broke_tax,
-    went_broke_nontax = went_broke_nontax
+    roth_access = access_age,
+    retire_access = ifelse(went_broke_tax, access_age, access_nontax_age),
+    went_broke_tax = went_broke_tax_msg,
+    went_broke_nontax = went_broke_nontax_msg
   )
 
   # return data
