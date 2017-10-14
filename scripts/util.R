@@ -65,13 +65,14 @@ make_interest_plot <- function(d, yearly_spend){
     mutate(variable = factor(ifelse(variable == "tax_interest", "Taxable", "Retirement"), levels = c("Taxable", "Retirement"))) %>%
     mutate(value = value / 1000)
   ymax <- ceiling(max(subset(plot_data, age <= 80)$value))
+  yearly_spend_label_loc <- yearly_spend / 1000 + (ymax - yearly_spend / 1000) * 0.10
 
   plot_data %>%
     ggplot(aes(age, value)) +
     geom_hline(yintercept = 0, size = 1.1, linetype = "dashed", color = "forestgreen") +
     geom_hline(yintercept = yearly_spend / 1000, size = 1.1, linetype = "dotted") +
     geom_line(size = 1.1) +
-    annotate("text", x = 90, y = yearly_spend/ 1000 + 40, label = "Yearly\nSpend") +
+    annotate("text", x = 90, y = yearly_spend_label_loc, label = "Yearly\nSpend") +
     facet_grid(~ variable) +
     labs(x = "Age", y = "Interest Earned Per Year ($1000)", title = "Interested Earned Per Year by Age")+
     scale_y_continuous(limits = c(0, ymax))
@@ -114,7 +115,7 @@ make_tab_colors <- function(input, roth_access_age, retire_access_age){
 
 
   # index 1/2/3 may be equal if
-  # index 2/3 may be equal if
+  # index 2/3 may be equal if # TODO
   milestones <- c(
     input$retire_early-1,
     roth_access_age-1,
