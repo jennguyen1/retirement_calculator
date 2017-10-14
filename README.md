@@ -9,8 +9,6 @@
 
 This is a R Shiny application that computes rough projections for retirement savings. 
 
-Prior to retirement, the calculator adds the **Amount Added** value to the **Initial Principle** for each the taxable and retirement account and computes the compounded interest based off of the **Growth Rate**. 
+Prior to the specified retirement age, specified contributions are added to the respective accounts. Following the specified retirement age, specified withdrawals are first made from the taxable accounts and then the retirement accounts. Interest is compounded at the end of the year at the specified growth rate. The calculator can also determine whether there is a need and when to apply the Rother Ladder Conversion. More instructions are available in the app.
 
-After the retirement age, the **Amount Added* is reduced to 0 and the **Spending per Year** amount is deducted from the total (from the taxable account until depletion, then from the retirement account). The calculator can also determine whether there is a need to apply the Roth Ladder Conversion. 
-
-The calculator outputs a summary of results, 
+A short summary and plots of balances over time are displayed; a detailed table of results is also available for download.
