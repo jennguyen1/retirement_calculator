@@ -1,6 +1,11 @@
 # Retirement Calculator
 
+## Check it Out!
+
 [Run the app](https://jennynguyen.shinyapps.io/retirement_calculator/)
+
+
+## Quick Summary
 
 ![screenshot of display 1](images/app_screenshot1.jpg)
 ![screenshot of display 2](images/app_screenshot2.jpg)
