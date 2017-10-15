@@ -11,7 +11,6 @@
 ![screenshot of display 2](images/app_screenshot2.jpg)
 ![screenshot of display 3](images/app_screenshot3.jpg)
 ![screenshot of display 4](images/app_screenshot4.jpg)
-
 ![screenshot of display 5](images/app_screenshot5.jpg)
 
 
