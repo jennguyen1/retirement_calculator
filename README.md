@@ -2,7 +2,7 @@
 
 ## Check it Out!
 
-[Run the app here.](https://jennynguyen.shinyapps.io/retirement_calculator/)
+[Run the app](https://jennynguyen.shinyapps.io/retirement_calculator/)
 
 
 ## Quick Summary
