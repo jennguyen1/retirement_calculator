@@ -12,6 +12,34 @@ make_error_msg <- function(condition, msg) ifelse(condition, msg, "")
 # check whether to throw error
 check_throw_error <- function(checks) unlist(lapply(checks, function(x) x != ""))
 
+# check for errors
+check_for_errors <- function(my_inputs){
+  
+  missing_vars <- make_error_msg(
+    any(purrr::map_lgl(my_inputs, ~ is.na(.x))), 
+    "Please provide all requested inputs"
+  )
+  need_vars <- names(my_inputs)
+  neg_vars <- make_error_msg(
+    any(map_lgl(need_vars, ~ my_inputs[[.x]] < 0)), 
+    "All values must be >= 0"
+  )
+  err_progressive_age <- make_error_msg(
+    my_inputs$retire_age <= my_inputs$start_age, 
+    "Retire age must be less than current age"
+  )
+  err_perc_growth <- make_error_msg(
+    (my_inputs$growth_rate < 0 | my_inputs$growth_rate > 0.5), 
+    "Growth rate must be between 0 and 0.5"
+  )
+  
+  return(list(missing_vars, neg_vars, err_progressive_age, err_perc_growth))
+}
+
+
+# fix integer overflow
+fix_int_overflow <- function(val) ifelse(val == "NA", '> 2,147,483,647', val)
+
 
 # summary of results
 process_summary_data <- function(l, age, retire_early_age, official_nontax_access_age = official_nontax_access){
@@ -35,10 +63,10 @@ process_summary_data <- function(l, age, retire_early_age, official_nontax_acces
   ))
 
   # variables
-  tax_total <- formatC(d2$tax_total, format="d", big.mark=",")
-  nontax_total <- formatC(d2$nontax_total, format="d", big.mark=",")
-  networth_total <- formatC(d2$net_worth, format="d", big.mark=",")
-  bal_at_100 <- formatC(d$net_worth[length(age)], format="d", big.mark=",")
+  tax_total <- formatC(d2$tax_total, format="d", big.mark=",") %>% fix_int_overflow()
+  nontax_total <- formatC(d2$nontax_total, format="d", big.mark=",") %>% fix_int_overflow()
+  networth_total <- formatC(d2$net_worth, format="d", big.mark=",") %>% fix_int_overflow()
+  bal_at_100 <- formatC(tail(d, 1)$net_worth, format="d", big.mark=",") %>% fix_int_overflow()
 
   # obtain text
   HTML(paste(
@@ -111,13 +139,13 @@ format_table_for_display <- function(d){
 }
 
 # make table colors
-make_tab_colors <- function(input, roth_access_age, retire_access_age){
+make_tab_colors <- function(retire_age, roth_access_age, retire_access_age){
 
   # index 1/2/3 may be equal if not enough $ in taxable account; need to access nontax right away
   # index 1/2 may be equal if not enough $ in taxable account; need to access nontax early (few years after retire)
   # index 2/3 may be equal if enough $ in taxable accounts; don't need roth ladder to reach nontax access
   milestones <- c(
-    input$retire_early-1,
+    retire_age-1,
     roth_access_age-1,
     retire_access_age-1,
     100

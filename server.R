@@ -21,17 +21,6 @@ source("scripts/compound_interest_calc.R")
 # server functions
 shinyServer(function(input, output) {
 
-  # checks on input
-  input_checks <- reactive({
-    need_vars <- c("growth_rate", "nontax_starting_principle", "nontax_yearly_add", "retire_early", "start_age", "tax_starting_principle", "tax_yearly_add", "yearly_spend")
-    missing_vars <- make_error_msg(!all(need_vars %in% names(input)), "Please provide all requested inputs")
-    neg_vars <- make_error_msg(!all(sapply(need_vars, function(x) input[[x]] >= 0)), "All values must be >= 0")
-    err_perc_growth <- make_error_msg((input$growth_rate < 0 | input$growth_rate > 1), "Growth rate must be between 0 and 1")
-    err_progressive_age <- make_error_msg(input$retire_age <= input$current_age, "Retire age must be less than current age")
-
-    return(list(missing_vars, neg_vars, err_perc_growth, err_progressive_age))
-  })
-
   min_retire <- reactiveValues(age = 55)
   observeEvent(input$start_age, {
     min_retire$age <- input$start_age + 1
@@ -39,24 +28,42 @@ shinyServer(function(input, output) {
 
   # set limit on the retire early age (> start age)
   output$retire_age <- renderUI({
-    numericInput("retire_early", "Retire Age", 55, min = min_retire$age, max = 100)
+    numericInput("retire_age", "Retire Age", 55, min = min_retire$age, max = 100)
   })
 
+  # input vars event reactive
+  get_inputs <- eventReactive(input$submit, {
+    list(
+      start_age = input$start_age,
+      retire_age = input$retire_age,
+      growth_rate = input$growth_rate,
+      yearly_spend = input$yearly_spend, 
+      tax_starting_principle = input$tax_starting_principle,
+      nontax_starting_principle = input$nontax_starting_principle,
+      tax_yearly_add = input$tax_yearly_add,
+      nontax_yearly_add = input$nontax_yearly_add
+    )
+  })
+  
+  # checks on input
+  input_checks <- reactive({
+    check_for_errors(get_inputs())
+  })
+  
   # run the retirement calculator
-  run_calc <- eventReactive(input$submit, {
-    checks <- input_checks()
-    throw_error <- check_throw_error(checks)
-
+  run_calc <- reactive({
+    throw_error <- check_throw_error(input_checks())
+    
     if( !any(throw_error) ){
       retire(
-        start_age = input$start_age,
-        retire_age = input$retire_early,
-        growth_rate = input$growth_rate,
-        yearly_spend = input$yearly_spend,
-        tax_starting_principle = input$tax_starting_principle,
-        nontax_starting_principle = input$nontax_starting_principle,
-        tax_yearly_add = input$tax_yearly_add,
-        nontax_yearly_add = input$nontax_yearly_add
+        start_age = get_inputs()$start_age,
+        retire_age = get_inputs()$retire_age,
+        growth_rate = get_inputs()$growth_rate,
+        yearly_spend = get_inputs()$yearly_spend,
+        tax_starting_principle = get_inputs()$tax_starting_principle,
+        nontax_starting_principle = get_inputs()$nontax_starting_principle,
+        tax_yearly_add = get_inputs()$tax_yearly_add,
+        nontax_yearly_add = get_inputs()$nontax_yearly_add
       )
     }
   })
@@ -74,89 +81,103 @@ shinyServer(function(input, output) {
 
     } else{
       # obtain data
-      age <- input$start_age:100
+      age <- get_inputs()$start_age:100
       retire_data <- run_calc()
-      process_summary_data(l = retire_data, age = age, retire_early_age = input$retire_early)
+      process_summary_data(l = retire_data, age = age, retire_early_age = get_inputs()$retire_age)
 
     }
   })
 
   # output data as csv
   output$downloadData <- downloadHandler(
-    filename = function() str_interp("Retire_at_${{input$retire_early}}_spending_${{input$yearly_spend}}_at_${{input$growth_rate}}.csv"),
+    filename = function(){
+      throw_error <- check_throw_error(input_checks())
+      if( !any(throw_error) ){
+        str_interp("Retire_at_${{get_inputs()$retire_age}}_spending_${{get_inputs()$yearly_spend}}_at_${{get_inputs()$growth_rate}}.csv")
+      } 
+    },
     content = function(file) {
-
-      l <- run_calc()
-      dat <- l$data %>%
-        mutate(
-          Notes = case_when(
-            age == input$start_age ~ "work",
-            age == input$retire_early ~ "early retirement via taxable accounts",
-            age == l$roth_access & l$roth_access != l$retire_access ~ "early retirement via roth ladder",
-            age == l$retire_access ~ "regular retirement via retirement accounts",
-            TRUE ~ ""
-        ))
-      colnames(dat) <- c("Year", "Age",
-                         "Tax Accounts Principle", "Tax Accounts Interest", "Tax Accounts Total",
-                         "Retirement Accounts Principle", "Retirement Accounts Interest", "Retirement Accounts Total",
-                         "Net Worth", "Notes")
-      write.csv(dat, file, row.names = FALSE)
-  })
+      throw_error <- check_throw_error(input_checks())
+      if( !any(throw_error) ){
+        l <- run_calc()
+        dat <- l$data %>%
+          mutate(
+            Notes = case_when(
+              age == get_inputs()$start_age ~ "work",
+              age == get_inputs()$retire_age ~ "early retirement via taxable accounts",
+              age == l$roth_access & l$roth_access != l$retire_access ~ "early retirement via roth ladder",
+              age == l$retire_access ~ "regular retirement via retirement accounts",
+              TRUE ~ ""
+          ))
+        colnames(dat) <- c(
+          "Year", "Age",
+          "Tax Accounts Principle", "Tax Accounts Interest", "Tax Accounts Total",
+          "Retirement Accounts Principle", "Retirement Accounts Interest", "Retirement Accounts Total",
+          "Net Worth", "Notes"
+        )
+        write.csv(dat, file, row.names = FALSE)
+      } 
+    }
+  )
 
   # generate plots
   plot_data <- reactive( melt(run_calc()$data, id.vars = c("year", "age")) )
 
   output$interestPlot <- renderPlot({
-    checks <- input_checks()
-    throw_error <- check_throw_error(checks)
-    if( !any(throw_error) ) make_interest_plot( plot_data(), input$yearly_spend )
+    throw_error <- check_throw_error(input_checks())
+    if( !any(throw_error) ) make_interest_plot( plot_data(), get_inputs()$yearly_spend )
   })
 
   output$totalPlot <- renderPlot({
-    checks <- input_checks()
-    throw_error <- check_throw_error(checks)
+    throw_error <- check_throw_error(input_checks())
     if( !any(throw_error) ) make_total_plot( plot_data() )
   })
 
   # tables
   output$table <- DT::renderDataTable({
-
-    # obtain the data
-    dat <- format_table_for_display(run_calc()$data)
-
-    # color the table
-    col <- make_tab_colors(input = input, roth_access_age = run_calc()$roth_access, retire_access_age = run_calc()$retire_access)
-    milestones <- col$milestones
-    colors <- col$colors
-
-    # format header
-    sketch = format_header()
-
-
-    #' render the table
-    d <- datatable(dat,
-      rownames = FALSE,
-      container = sketch,
-      extensions = "Buttons",
-      options = list(
-        dom = "Bt",
-        ordering = FALSE,
-        buttons = I('colvis'),
-        scrollX = TRUE, scrollY = 400,
-        pageLength = 200
+    throw_error <- check_throw_error(input_checks())
+    if( !any(throw_error) ){
+    
+      # obtain the data
+      dat <- format_table_for_display(run_calc()$data)
+  
+      # color the table
+      col <- make_tab_colors(
+        retire_age = get_inputs()$retire_age, 
+        roth_access_age = run_calc()$roth_access, 
+        retire_access_age = run_calc()$retire_access
       )
-    ) %>%
-
-      # format currencies
-      formatCurrency(purrr::discard(colnames(dat), ~ .x == "Age"), digits = 0) %>%
-
-      # color rows based on retirement stage
-      formatStyle(
-        "Age",
-        target = "row",
-        backgroundColor = styleInterval(milestones, colors)
-      )
-    d
+      milestones <- col$milestones
+      colors <- col$colors
+  
+      # format header
+      sketch = format_header()
+  
+  
+      #' render the table
+      d <- datatable(dat,
+        rownames = FALSE,
+        container = sketch,
+        extensions = "Buttons",
+        options = list(
+          dom = "Bt",
+          ordering = FALSE,
+          buttons = I('colvis'),
+          scrollX = TRUE, scrollY = 400,
+          pageLength = 200
+        )
+      ) %>%
+  
+        # format currencies
+        formatCurrency(purrr::discard(colnames(dat), ~ .x == "Age"), digits = 0) %>%
+  
+        # color rows based on retirement stage
+        formatStyle(
+          "Age",
+          target = "row",
+          backgroundColor = styleInterval(milestones, colors)
+        )
+      d
+    }
   })
-
 })
