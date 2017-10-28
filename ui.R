@@ -85,7 +85,7 @@ dashboardPage(skin = "green",
 
       downloadButton('downloadData', 'Download'),
       p(),
-      dataTableOutput("table"),
+      DT::dataTableOutput("table"),
 
       p(),
       p(span(strong("white")), " = work; ", span(strong("blue")), " = early retirement via taxable accounts; ", span(strong("light green")), " = early retirement via from roth ladder; ", span(strong("green")), " = regular retirement via retirement accounts")

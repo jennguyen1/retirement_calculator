@@ -119,7 +119,7 @@ shinyServer(function(input, output) {
   })
 
   # tables
-  output$table <- renderDataTable({
+  output$table <- DT::renderDataTable({
 
     # obtain the data
     dat <- format_table_for_display(run_calc()$data)
