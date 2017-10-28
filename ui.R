@@ -51,7 +51,8 @@ dashboardPage(skin = "green",
           fluidRow(
             column(width = 6, numericInput("tax_yearly_add", "Amount Added to Taxable Account Yearly", 18000, min = 0, step = 500)),
             column(width = 6, numericInput("nontax_yearly_add", "Amount Added to Retirement Account Yearly", 36000, min = 0, step = 500))
-          )
+          ), 
+          actionButton("submit", "Submit")
         )
       )
 

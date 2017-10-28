@@ -43,7 +43,7 @@ shinyServer(function(input, output) {
   })
 
   # run the retirement calculator
-  run_calc <- reactive({
+  run_calc <- eventReactive(input$submit, {
     checks <- input_checks()
     throw_error <- check_throw_error(checks)
 
@@ -132,8 +132,9 @@ shinyServer(function(input, output) {
     # format header
     sketch = format_header()
 
+
     #' render the table
-    datatable(dat,
+    d <- datatable(dat,
       rownames = FALSE,
       container = sketch,
       extensions = "Buttons",
@@ -155,6 +156,7 @@ shinyServer(function(input, output) {
         target = "row",
         backgroundColor = styleInterval(milestones, colors)
       )
+    d
   })
 
 })
