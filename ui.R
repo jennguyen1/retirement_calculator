@@ -13,14 +13,14 @@ sidebar <- dashboardSidebar(
   collapsed = TRUE,
   sidebarMenu(
     menuItem("Calculator", tabName = "main", icon = icon("calculator")),
-    menuItem("Instructions", tabName = "instructions", icon = icon("info-circle")), 
+    menuItem("Information", tabName = "information", icon = icon("info-circle")), 
     menuItem("Github Source Code", href = "https://github.com/jennguyen1/retirement_calculator", icon = icon("github"))
   )
 )
 
-# instructions
-instructions <- tabItem(
-  tabName = "instructions",
+# information
+information <- tabItem(
+  tabName = "information",
   verticalLayout(
     box(width = NULL,
       p("This is a R Shiny application that computes rough projections for retirement savings."),
@@ -97,7 +97,7 @@ main_app <- tabItem(
 
 body <- dashboardBody(
   tabItems(
-    instructions, 
+    information, 
     main_app
   ),
   span(p("Content contained or made available through the app is not intended to and does not constitute financial or investment advice. No one should make any financial decision without first conducting his or her own research and due diligence. To the maximum extent permitted by law, JN disclaims any and all liability in the event any information, analysis, advice and/or recommendations prove to be inaccurate, incomplete or unreliable, or result in any investment or other losses. You should consult with a professional to determine what may be the best for your individual needs."), style = "font-size:12px; color:grey"),
