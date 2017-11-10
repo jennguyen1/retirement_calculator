@@ -6,36 +6,6 @@
 # global official nontax access age
 official_nontax_access <- 60
 
-# error messages
-make_error_msg <- function(condition, msg) ifelse(condition, msg, "")
-
-# check whether to throw error
-check_throw_error <- function(checks) unlist(lapply(checks, function(x) x != ""))
-
-# check for errors
-check_for_errors <- function(my_inputs){
-  
-  missing_vars <- make_error_msg(
-    any(purrr::map_lgl(my_inputs, ~ is.na(.x))), 
-    "Please provide all requested inputs"
-  )
-  need_vars <- names(my_inputs)
-  neg_vars <- make_error_msg(
-    any(map_lgl(need_vars, ~ my_inputs[[.x]] < 0)), 
-    "All values must be >= 0"
-  )
-  err_progressive_age <- make_error_msg(
-    my_inputs$retire_age <= my_inputs$start_age, 
-    "Retire age must be less than current age"
-  )
-  err_perc_growth <- make_error_msg(
-    (my_inputs$growth_rate < 0 | my_inputs$growth_rate > 0.5), 
-    "Growth rate must be between 0 and 0.5"
-  )
-  
-  return(list(missing_vars, neg_vars, err_progressive_age, err_perc_growth))
-}
-
 
 # fix integer overflow
 fix_int_overflow <- function(val) ifelse(val == "NA", '> 2,147,483,647', val)
