@@ -43,8 +43,8 @@ main_app <- tabItem(
       solidHeader = TRUE, status = "success", collapsible = TRUE,
       
       fluidRow(
-        column(width = 6, numericInput("start_age", "Current Age", 25)),
-        column(width = 6, uiOutput("retire_age"))
+        column(width = 6, numericInput("start_age", "Current Age", 25, min = 16, max = 99)),
+        column(width = 6, numericInput("retire_age", "Retire Age", 55, min = 18, max = 100))
       ),
       fluidRow(
         column(width = 6, numericInput("yearly_spend", "Spending Per Year", 30000, min = 0, step = 1000)),

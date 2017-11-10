@@ -23,17 +23,7 @@ shinyServer(function(input, output) {
 
   # CONFIGURE INPUTS #####################
   # ######################################
-  
-  min_retire <- reactiveValues(age = 55)
-  observeEvent(input$start_age, {
-    min_retire$age <- input$start_age + 1
-  })
 
-  # set limit on the retire early age (> start age)
-  output$retire_age <- renderUI({
-    numericInput("retire_age", "Retire Age", 55, min = min_retire$age, max = 100)
-  })
-  
   # input vars event reactive
   get_inputs <- eventReactive(input$submit, {
     
@@ -42,8 +32,10 @@ shinyServer(function(input, output) {
     validate(
       need(all(purrr::map_lgl(need_inputs, ~ !is.na(.x))), "Please provide all requested inputs"),
       need(all(purrr::map_lgl(need_inputs, ~ .x >= 0)), "All values must be >= 0"),
+      need(dplyr::between(input$start_age, 16, 99), "Start age must be between 16 and 99"),
+      need(dplyr::between(input$retire_age, 18, 100), "Retire age must be between 18 and 100"),
       need(input$retire_age > input$start_age, "Retire age must be less than current age"),
-      need(between(input$growth_rate, 0, 0.5), "Growth rate must be between 0 and 0.5")
+      need(dplyr::between(input$growth_rate, 0, 0.5), "Growth rate must be between 0 and 0.5")
     )
     
     list(
@@ -58,19 +50,6 @@ shinyServer(function(input, output) {
       nontax_yearly_add = input$nontax_yearly_add
     )
   })
-  
-  # # when bookmarking and restoring - saving states
-  # onBookmark(function(state){
-  #   map2(names(input), input, function(x,y){
-  #     state$values[[x]] <- y
-  #   })
-  # })
-  # 
-  # onRestore(function(state){
-  #   map2(names(state$values), state$values, function(x,y){
-  #     input[[x]] <- y
-  #   })
-  # })
   
   # RUNNING THE APP ######################
   # ######################################
