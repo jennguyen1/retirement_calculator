@@ -23,22 +23,10 @@ shinyServer(function(input, output) {
 
   # CONFIGURE INPUTS #####################
   # ######################################
-
-  # input vars event reactive
-  get_inputs <- eventReactive(input$submit, {
-    
-    need_args <- c("start_age", "retire_age", "growth_rate", "yearly_spend", "tax_starting_principle", "nontax_starting_principle", "tax_yearly_add", "nontax_yearly_add")
-    need_inputs <- map(need_args, ~ input[[.x]])
-    validate(
-      need(all(purrr::map_lgl(need_inputs, ~ !is.na(.x))), "Please provide all requested inputs"),
-      need(all(purrr::map_lgl(need_inputs, ~ .x >= 0)), "All values must be >= 0"),
-      need(dplyr::between(input$start_age, 16, 99), "Start age must be between 16 and 99"),
-      need(dplyr::between(input$retire_age, 18, 100), "Retire age must be between 18 and 100"),
-      need(input$retire_age > input$start_age, "Retire age must be less than current age"),
-      need(dplyr::between(input$growth_rate, 0, 0.5), "Growth rate must be between 0 and 0.5")
-    )
-    
-    list(
+  
+  my_inputs <- reactiveValues(inputs = NULL)
+  observeEvent(input$submit, {
+    my_inputs$inputs <- list(
       start_age = input$start_age,
       retire_age = input$retire_age,
       growth_rate = input$growth_rate,
@@ -49,6 +37,36 @@ shinyServer(function(input, output) {
       tax_yearly_add = input$tax_yearly_add,
       nontax_yearly_add = input$nontax_yearly_add
     )
+  })
+  
+  # store/load values for bookmarking
+  onBookmark(function(state) {
+    state$values$inputs <- my_inputs$inputs
+  })
+  onRestore(function(state) {
+    my_inputs$inputs <- state$values$inputs
+  })
+  setBookmarkExclude(c("submit", "sidebarCollapsed", "sidebarItemExpanded"))
+  
+  # input vars event reactive
+  get_inputs <- reactive({
+    
+    validate(
+      need(my_inputs$inputs, "")
+    )
+    
+    need_args <- c("start_age", "retire_age", "growth_rate", "yearly_spend", "tax_starting_principle", "nontax_starting_principle", "tax_yearly_add", "nontax_yearly_add")
+    need_inputs <- map(need_args, ~ my_inputs$inputs[[.x]])
+    validate(
+      need(all(purrr::map_lgl(need_inputs, ~ !is.na(.x))), "Please provide all requested inputs"),
+      need(all(purrr::map_lgl(need_inputs, ~ .x >= 0)), "All values must be >= 0"),
+      need(dplyr::between(my_inputs$inputs$start_age, 16, 99), "Start age must be between 16 and 99"),
+      need(dplyr::between(my_inputs$inputs$retire_age, 18, 100), "Retire age must be between 18 and 100"),
+      need(my_inputs$inputs$retire_age > my_inputs$inputs$start_age, "Retire age must be less than current age"),
+      need(dplyr::between(my_inputs$inputs$growth_rate, 0, 0.5), "Growth rate must be between 0 and 0.5")
+    )
+    
+    my_inputs$inputs
   })
   
   # RUNNING THE APP ######################

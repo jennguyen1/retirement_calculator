@@ -34,83 +34,79 @@ information <- tabItem(
 )
 
 
-main_app <- tabItem(
-  tabName = "main",
-  
-  verticalLayout(
-    box(
-      title = "Set Input Parameters", width = NULL,
-      solidHeader = TRUE, status = "success", collapsible = TRUE,
-      
-      fluidRow(
-        column(width = 6, numericInput("start_age", "Current Age", 25, min = 16, max = 99)),
-        column(width = 6, numericInput("retire_age", "Retire Age", 55, min = 18, max = 100))
-      ),
-      fluidRow(
-        column(width = 6, numericInput("yearly_spend", "Spending Per Year", 30000, min = 0, step = 1000)),
-        column(width = 6, numericInput("growth_rate", "Growth Rate", 0.05, min = 0, max = 0.5, step = 0.01))
-      ),
-      fluidRow(
-        column(width = 6, numericInput("tax_starting_principle", "Initial Principle in Taxable Accounts", 0, min = 0, step = 500)),
-        column(width = 6, numericInput("nontax_starting_principle", "Initial Principle in Retirement Accounts", 11000, min = 0, step = 500))
-      ),
-      fluidRow(
-        column(width = 6, numericInput("tax_yearly_add", "Amount Added to Taxable Account Yearly", 18000, min = 0, step = 500)),
-        column(width = 6, numericInput("nontax_yearly_add", "Amount Added to Retirement Account Yearly", 36000, min = 0, step = 500))
-      ), 
-      actionButton("submit", "Submit")
-    ),
-    
-    # outputs: summary
-    box(
-      title = "Summary of Results", width = NULL,
-      solidHeader = TRUE, status = "success", collapsible = TRUE,
-      
-      h4(htmlOutput("summary"))
-    ),
-    
-    # outputs: plots
-    box(
-      title = "Plots", width = NULL,
-      solidHeader = TRUE, status = "success",
-      collapsible = TRUE, collapsed = TRUE,
-      
-      plotOutput("totalPlot"),
-      plotOutput("interestPlot")
-      
-    ),
-    
-    box(
-      title = "Detailed Results", width = NULL,
-      solidHeader = TRUE, status = "success",
-      collapsible = TRUE, collapsed = TRUE,
-      
-      downloadButton('downloadData', 'Download'),
-      p(),
-      DT::dataTableOutput("table"),
-      
-      p(),
-      p(span(strong("white")), " = work; ", span(strong("blue")), " = early retirement via taxable accounts; ", span(strong("light green")), " = early retirement via from roth ladder; ", span(strong("green")), " = regular retirement via retirement accounts")
-    )
-  )
-)
-
-body <- dashboardBody(
-  tabItems(
-    information, 
-    main_app
-  ),
-  span(p("Content contained or made available through the app is not intended to and does not constitute financial or investment advice. No one should make any financial decision without first conducting his or her own research and due diligence. To the maximum extent permitted by law, JN disclaims any and all liability in the event any information, analysis, advice and/or recommendations prove to be inaccurate, incomplete or unreliable, or result in any investment or other losses. You should consult with a professional to determine what may be the best for your individual needs."), style = "font-size:12px; color:grey"),
-  span(p("Copyright (c) 2018 Jennifer N Nguyen under the MIT License"), style = "font-size:12px; color:grey")
-)
-
-
 
 # UI functions setup
+function(request){
 dashboardPage(skin = "green",
   dashboardHeader(title = "Retirement Calculator"),
   sidebar, 
-  body
-)
+  dashboardBody(
+    tabItems(
+      information, 
+      tabItem(
+        tabName = "main",
+        
+        verticalLayout(
+          box(
+            title = "Set Input Parameters", width = NULL,
+            solidHeader = TRUE, status = "success", collapsible = TRUE,
+            
+            fluidRow(
+              column(width = 6, numericInput("start_age", "Current Age", 25, min = 16, max = 99)),
+              column(width = 6, numericInput("retire_age", "Retire Age", 55, min = 18, max = 100))
+            ),
+            fluidRow(
+              column(width = 6, numericInput("yearly_spend", "Spending Per Year", 30000, min = 0, step = 1000)),
+              column(width = 6, numericInput("growth_rate", "Growth Rate", 0.05, min = 0, max = 0.5, step = 0.01))
+            ),
+            fluidRow(
+              column(width = 6, numericInput("tax_starting_principle", "Initial Principle in Taxable Accounts", 0, min = 0, step = 500)),
+              column(width = 6, numericInput("nontax_starting_principle", "Initial Principle in Retirement Accounts", 11000, min = 0, step = 500))
+            ),
+            fluidRow(
+              column(width = 6, numericInput("tax_yearly_add", "Amount Added to Taxable Account Yearly", 18000, min = 0, step = 500)),
+              column(width = 6, numericInput("nontax_yearly_add", "Amount Added to Retirement Account Yearly", 36000, min = 0, step = 500))
+            ), 
+            actionButton("submit", "Submit"), bookmarkButton()
+          ),
+          
+          # outputs: summary
+          box(
+            title = "Summary of Results", width = NULL,
+            solidHeader = TRUE, status = "success", collapsible = TRUE,
+            
+            h4(htmlOutput("summary"))
+          ),
+          
+          # outputs: plots
+          box(
+            title = "Plots", width = NULL,
+            solidHeader = TRUE, status = "success",
+            collapsible = TRUE, collapsed = TRUE,
+            
+            plotOutput("totalPlot"),
+            plotOutput("interestPlot")
+            
+          ),
+          
+          box(
+            title = "Detailed Results", width = NULL,
+            solidHeader = TRUE, status = "success",
+            collapsible = TRUE, collapsed = TRUE,
+            
+            downloadButton('downloadData', 'Download'),
+            p(),
+            DT::dataTableOutput("table"),
+            
+            p(),
+            p(span(strong("white")), " = work; ", span(strong("blue")), " = early retirement via taxable accounts; ", span(strong("light green")), " = early retirement via from roth ladder; ", span(strong("green")), " = regular retirement via retirement accounts")
+          )
+        )
+      )
+    ),
+    span(p("Content contained or made available through the app is not intended to and does not constitute financial or investment advice. No one should make any financial decision without first conducting his or her own research and due diligence. To the maximum extent permitted by law, JN disclaims any and all liability in the event any information, analysis, advice and/or recommendations prove to be inaccurate, incomplete or unreliable, or result in any investment or other losses. You should consult with a professional to determine what may be the best for your individual needs."), style = "font-size:12px; color:grey"),
+    span(p("Copyright (c) 2018 Jennifer N Nguyen under the MIT License"), style = "font-size:12px; color:grey")
+  )
+)}
 
 
