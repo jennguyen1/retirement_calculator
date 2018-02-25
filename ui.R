@@ -104,7 +104,7 @@ dashboardPage(skin = "green",
         )
       )
     ),
-    span(p("Disclaimer: Content contained or made available through the app is not intended to and does not constitute financial or investment advice. No one should make any financial decisions without first conducting his or her own research and due diligence. To the maximum extent permitted by law, JN disclaims any and all liability in the event any information, analysis, advice and/or recommendations prove to be inaccurate, incomplete or unreliable, or result in any investment or other losses. You should consult with a professional to determine what may be the best for your individual needs."), style = "font-size:12px; color:grey"),
+    span(p("Content contained or made available through the app is provided for informational purposes only and does not constitute financial, tax, or legal advice. No one should make any financial decisions without first conducting his or her own research and due diligence. To the maximum extent permitted by law, JN disclaims any and all liability in the event any information and/or analysis prove to be inaccurate, incomplete, unreliable, or result in any investment or other losses. You should consult with a professional to determine what may be the best for your individual needs."), style = "font-size:12px; color:grey"),
     span(p("Copyright (c) 2018 Jennifer N Nguyen under the MIT License"), style = "font-size:12px; color:grey")
   )
 )}
