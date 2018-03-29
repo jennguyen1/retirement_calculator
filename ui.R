@@ -64,8 +64,8 @@ dashboardPage(skin = "green",
               column(width = 6, numericInput("nontax_starting_principle", "Initial Principle in Retirement Accounts", 10000, min = 0, step = 500))
             ),
             fluidRow(
-              column(width = 6, numericInput("tax_yearly_add", "Amount Added to Taxable Account Yearly", 20000, min = 0, step = 500)),
-              column(width = 6, numericInput("nontax_yearly_add", "Amount Added to Retirement Account Yearly", 7500, min = 0, step = 500))
+              column(width = 6, numericInput("tax_yearly_add", "Amount Added to Taxable Account Yearly", 7000, min = 0, step = 500)),
+              column(width = 6, numericInput("nontax_yearly_add", "Amount Added to Retirement Account Yearly", 23000, min = 0, step = 500))
             ), 
             actionButton("submit", "Submit"), bookmarkButton()
           ),
