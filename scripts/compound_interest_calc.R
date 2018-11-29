@@ -8,23 +8,38 @@
 # ---------------------------------------------
 
 # compound interest formula with annual contribution (made at start of compounding period)
-formula <- function(n, principle, contribution, interest_rate){
+# - if no interest rate: just add up cumulative contributions
+# - if constant contributions: use compound interest formula
+# - if vary contributions and interest rate: manually calculate
+formula <- function(n, principle, contributions, interest_rate){
   if(!dplyr::between(interest_rate, 0, 1)) stop("Interest rate must be between 0 and 1")
 
   r <- 1 + interest_rate
-  val <- principle * r ^ (n) + contribution * r * (1 - r ^ n) / (1 - r)
+  if(interest_rate == 0){
+    val <- principle * r ^ (n) + cumsum(contributions)
+  } else if(length(unique(contributions)) == 1){
+    val <- principle * r ^ (n) + contributions * r * (1 - r ^ n) / (1 - r)
+  } else{
+    val <- c()
+    tot <- principle
+    for(ct in contributions){
+      tot <- (tot + ct) * r
+      val <- c(val, tot)
+    }
+  }
   return(val)
 }
 
 
 # compute the total, principle, and interest; convert all neg values to 0
-apply_calculations <- function(n, principle, contribution, interest_rate, label){
+apply_calculations <- function(n, principle, contribution, savings_increase, interest_rate, label){
 
-  tot <- formula(n, principle, contribution, interest_rate)
-  interest <- diff(c(principle, tot)) - contribution
-  principle <- tot - interest
+  contributions <- c(contribution, formula(n, contribution, 0, savings_increase))[n]
+  tot <- formula(n, principle, contributions, interest_rate)
+  principle <- c(principle, tot)[n] 
+  interest <- tot - principle - contributions
 
-  out <- data.frame(principle = principle, interest = interest, total = tot) %>%
+  out <- data.frame(principle = principle, contribution = contributions, interest = interest, total = tot) %>%
     mutate_all(~ ifelse(.x < 0, 0, .x))
   colnames(out) <- paste(label, colnames(out), sep = "_")
   return(out)
@@ -36,7 +51,7 @@ accumulate <- function(
   start_age, retire_age,
   tax_starting_principle, nontax_starting_principle,
   tax_yearly_add, nontax_yearly_add,
-  growth_rate
+  savings_increase, growth_rate
 ){
 
   age <- start_age:(retire_age - 1)
@@ -45,12 +60,12 @@ accumulate <- function(
   tax_accounts <- apply_calculations(
     n = index,
     principle = tax_starting_principle, contribution = tax_yearly_add,
-    interest_rate = growth_rate, label = "tax"
+    savings_increase = savings_increase, interest_rate = growth_rate, label = "tax"
   )
   nontax_accounts <- apply_calculations(
     n = index,
     principle = nontax_starting_principle, contribution = nontax_yearly_add,
-    interest_rate = growth_rate, label = "nontax"
+    savings_increase = savings_increase, interest_rate = growth_rate, label = "nontax"
   )
 
   # balances up until retirement
@@ -73,13 +88,13 @@ early_retire <- function(
   tax_accounts <- apply_calculations(
     n = index,
     principle = bal_before_retire$tax_total, contribution = -yearly_spend,
-    interest_rate = growth_rate, label = "tax"
+    savings_increase = 0, interest_rate = growth_rate, label = "tax"
   )
 
   nontax_accounts <- apply_calculations(
     n = index,
     principle = bal_before_retire$nontax_total, contribution = 0,
-    interest_rate = growth_rate, label = "nontax"
+    savings_increase = 0, interest_rate = growth_rate, label = "nontax"
   )
 
   dat <- bind_cols(age = age, tax_accounts, nontax_accounts)
@@ -131,7 +146,7 @@ regular_retire <- function(
   nontax_accounts <- apply_calculations(
     n = index,
     principle = principle_after_transfer, contribution = -yearly_spend,
-    interest_rate = growth_rate, label = "nontax"
+    savings_increase = 0, interest_rate = growth_rate, label = "nontax"
   )
 
   dat <- bind_cols(age = age, nontax_accounts)
@@ -165,7 +180,8 @@ combine_retire_data <- function(accumulate_data, early_retire_data, regular_reti
 retire <- function(
   retire_age, yearly_spend, tax_starting_principle, nontax_starting_principle,
   start_age = 25, access_nontax_age = official_nontax_access,
-  growth_rate = 0.05, tax_yearly_add = 0, nontax_yearly_add = 0
+  savings_increase = 0.01, growth_rate = 0.05, 
+  tax_yearly_add = 0, nontax_yearly_add = 0
 ){
 
   # working years - build portfolio
@@ -176,7 +192,7 @@ retire <- function(
     nontax_starting_principle = nontax_starting_principle,
     tax_yearly_add = tax_yearly_add,
     nontax_yearly_add = nontax_yearly_add,
-    growth_rate = growth_rate
+    savings_increase = savings_increase, growth_rate = growth_rate
   )
 
   # early retirement years - withdraw from tax account

@@ -102,8 +102,8 @@ format_table_for_display <- function(d){
 
   dat <- d %>%
     mutate_at(vars(-year, -age), ~ round(.x)) %>%
-    dplyr::select(age, tax_principle, tax_interest, tax_total, nontax_principle, nontax_interest, nontax_total, net_worth)
-  colnames(dat) <- c("Age", "Tax Accounts Principle", "Tax Accounts Interest", "Tax Accounts Total", "Retirement Accounts Principle", "Retirement Accounts Interest", "Retirement Accounts Total", "Net Worth")
+    dplyr::select(age, tax_principle, tax_contribution, tax_interest, tax_total, nontax_principle, nontax_contribution, nontax_interest, nontax_total, net_worth)
+  colnames(dat) <- c("Age", "Tax Accounts Principle", "Tax Accounts Contribution", "Tax Accounts Interest", "Tax Accounts Total", "Retirement Accounts Principle", "Retirement Accounts Contribution", "Retirement Accounts Interest", "Retirement Accounts Total", "Net Worth")
 
   return(dat)
 }
@@ -137,12 +137,12 @@ format_header <- function(){
     thead(
       tr(
         th(rowspan = 2, 'Age'),
-        th(colspan = 3, 'Taxable Accounts'),
-        th(colspan = 3, 'Retirement Accounts'),
+        th(colspan = 4, 'Taxable Accounts'),
+        th(colspan = 4, 'Retirement Accounts'),
         th(rowspan = 2, 'Net Worth')
       ),
       tr(
-        lapply(rep(c("Principle", "Interest", "Total"), 2), th)
+        lapply(rep(c("Principle", "Contribution", "Interest", "Total"), 2), th)
       )
     )
   ))

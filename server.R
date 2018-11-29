@@ -30,6 +30,7 @@ shinyServer(function(input, output) {
       start_age = input$start_age,
       retire_age = input$retire_age,
       growth_rate = input$growth_rate,
+      savings_increase = input$savings_increase,
       yearly_spend = input$yearly_spend, 
       yearly_spend = input$yearly_spend,
       tax_starting_principle = input$tax_starting_principle,
@@ -55,7 +56,7 @@ shinyServer(function(input, output) {
       need(my_inputs$inputs, "")
     )
     
-    need_args <- c("start_age", "retire_age", "growth_rate", "yearly_spend", "tax_starting_principle", "nontax_starting_principle", "tax_yearly_add", "nontax_yearly_add")
+    need_args <- c("start_age", "retire_age", "growth_rate", "savings_increase", "yearly_spend", "tax_starting_principle", "nontax_starting_principle", "tax_yearly_add", "nontax_yearly_add")
     need_inputs <- map(need_args, ~ my_inputs$inputs[[.x]])
     validate(
       need(all(purrr::map_lgl(need_inputs, ~ !is.na(.x))), "Please provide all requested inputs"),
@@ -63,7 +64,8 @@ shinyServer(function(input, output) {
       need(dplyr::between(my_inputs$inputs$start_age, 16, 99), "Start age must be between 16 and 99"),
       need(dplyr::between(my_inputs$inputs$retire_age, 18, 100), "Retire age must be between 18 and 100"),
       need(my_inputs$inputs$retire_age > my_inputs$inputs$start_age, "Retire age must be less than current age"),
-      need(dplyr::between(my_inputs$inputs$growth_rate, 0, 0.5), "Growth rate must be between 0 and 0.5")
+      need(dplyr::between(my_inputs$inputs$growth_rate, 0, 0.5), "Growth rate must be between 0 and 0.5"),
+      need(dplyr::between(my_inputs$inputs$savings_increase, 0, 0.5), "Savings increase must be between 0 and 0.5")
     )
     
     my_inputs$inputs
@@ -78,6 +80,7 @@ shinyServer(function(input, output) {
       start_age = get_inputs()$start_age,
       retire_age = get_inputs()$retire_age,
       growth_rate = get_inputs()$growth_rate,
+      savings_increase = get_inputs()$savings_increase,
       yearly_spend = get_inputs()$yearly_spend,
       tax_starting_principle = get_inputs()$tax_starting_principle,
       nontax_starting_principle = get_inputs()$nontax_starting_principle,
@@ -114,8 +117,8 @@ shinyServer(function(input, output) {
         ))
       colnames(dat) <- c(
         "Year", "Age",
-        "Tax Accounts Principle", "Tax Accounts Interest", "Tax Accounts Total",
-        "Retirement Accounts Principle", "Retirement Accounts Interest", "Retirement Accounts Total",
+        "Tax Accounts Principle", "Tax Accounts Contribution", "Tax Accounts Interest", "Tax Accounts Total",
+        "Retirement Accounts Principle", "Retirement Accounts Contribution", "Retirement Accounts Interest", "Retirement Accounts Total",
         "Net Worth", "Notes"
       )
       write.csv(dat, file, row.names = FALSE)
