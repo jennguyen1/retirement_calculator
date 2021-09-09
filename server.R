@@ -8,35 +8,38 @@ library(shiny)
 library(stringr)
 library(dplyr)
 library(purrr)
-library(reshape2)
+library(tidyr)
+library(glue)
 library(DT)
 library(htmltools)
 library(ggplot2)
 theme_set(theme_bw(base_size = 16))
 
 # pull in code
-source("scripts/util.R")
-source("scripts/compound_interest_calc.R")
+source("www/util.R")
+source("www/compound_interest_calc.R")
 
 # server functions
 shinyServer(function(input, output) {
 
-  # CONFIGURE INPUTS #####################
-  # ######################################
+  # CONFIGURE INPUTS 
 
-  my_inputs <- reactiveValues(inputs = NULL)
+  my_inputs <- reactiveValues(inputs = NULL, clicked_once = FALSE)
   observeEvent(input$submit, {
+    my_inputs$clicked_once <- TRUE
     my_inputs$inputs <- list(
       start_age = input$start_age,
       retire_age = input$retire_age,
       growth_rate = input$growth_rate,
       savings_increase = input$savings_increase,
       yearly_spend = input$yearly_spend,
-      yearly_spend = input$yearly_spend,
       tax_starting_principle = input$tax_starting_principle,
-      nontax_starting_principle = input$nontax_starting_principle,
+      tax_defer_starting_principle = input$tax_defer_starting_principle,
+      tax_exempt_starting_principle = input$tax_exempt_starting_principle,
+      tax_exempt_starting_contributions = input$tax_exempt_starting_contributions,
       tax_yearly_add = input$tax_yearly_add,
-      nontax_yearly_add = input$nontax_yearly_add
+      tax_defer_yearly_add = input$tax_defer_yearly_add,
+      tax_exempt_yearly_add = input$tax_exempt_yearly_add
     )
   })
 
@@ -56,7 +59,12 @@ shinyServer(function(input, output) {
       need(my_inputs$inputs, "")
     )
 
-    need_args <- c("start_age", "retire_age", "growth_rate", "savings_increase", "yearly_spend", "tax_starting_principle", "nontax_starting_principle", "tax_yearly_add", "nontax_yearly_add")
+    need_args <- c(
+      "start_age", "retire_age", 
+      "growth_rate", "savings_increase", "yearly_spend", 
+      "tax_starting_principle", "tax_defer_starting_principle", "tax_exempt_starting_principle", "tax_exempt_starting_contributions",
+      "tax_yearly_add", "tax_defer_yearly_add", "tax_exempt_yearly_add"
+    )
     need_inputs <- map(need_args, ~ my_inputs$inputs[[.x]])
     validate(
       need(all(purrr::map_lgl(need_inputs, ~ !is.na(.x))), "Please provide all requested inputs"),
@@ -72,7 +80,6 @@ shinyServer(function(input, output) {
   })
 
   # RUNNING THE APP ######################
-  # ######################################
 
   # run the retirement calculator
   run_calc <- reactive({
@@ -83,101 +90,110 @@ shinyServer(function(input, output) {
       savings_increase = get_inputs()$savings_increase,
       yearly_spend = get_inputs()$yearly_spend,
       tax_starting_principle = get_inputs()$tax_starting_principle,
-      nontax_starting_principle = get_inputs()$nontax_starting_principle,
+      tax_defer_starting_principle = get_inputs()$tax_defer_starting_principle,
+      tax_exempt_starting_principle = get_inputs()$tax_exempt_starting_principle,
+      tax_exempt_starting_contributions = get_inputs()$tax_exempt_starting_contributions,
       tax_yearly_add = get_inputs()$tax_yearly_add,
-      nontax_yearly_add = get_inputs()$nontax_yearly_add
+      tax_defer_yearly_add = get_inputs()$tax_defer_yearly_add,
+      tax_exempt_yearly_add = get_inputs()$tax_exempt_yearly_add
     )
   })
 
   # print out summary of results
   output$summary <- renderUI({
-
-    # obtain data
     age <- get_inputs()$start_age:100
     retire_data <- run_calc()
-    process_summary_data(l = retire_data, age = age, retire_early_age = get_inputs()$retire_age)
-
+    process_summary_data(l = retire_data, age = age)
   })
 
   # output data as csv
   output$downloadData <- downloadHandler(
-    filename = function(){
-      str_interp("Retire_at_${{get_inputs()$retire_age}}_spending_${{get_inputs()$yearly_spend}}_at_${{get_inputs()$growth_rate}}.csv")
+    filename = function(){ 
+      stringr::str_interp("Retire_at_${{get_inputs()$retire_age}}_spending_${{get_inputs()$yearly_spend}}_at_${{get_inputs()$growth_rate}}.csv")
     },
     content = function(file) {
-      l <- run_calc()
-      dat <- l$data %>%
-        mutate(
-          Notes = case_when(
-            age == get_inputs()$start_age ~ "work",
-            age == get_inputs()$retire_age ~ "early retirement via taxable accounts",
-            age == l$roth_access & l$roth_access != l$retire_access ~ "early retirement via roth ladder",
-            age == l$retire_access ~ "regular retirement via retirement accounts",
-            TRUE ~ ""
+      dat <- annotate_data(run_calc()) %>% 
+        purrr::set_names(c(
+          "Year", "Age", 
+          "Tax Accounts Principle", "Tax Accounts Contribution", "Tax Accounts Interest", "Tax Accounts Total", 
+          "Tax-Deferred Accounts Principle", "Tax-Deferred Accounts Contribution", "Tax-Deferred Accounts Interest", "Tax-Deferred Accounts Total", 
+          "Tax-Exempt Accounts Principle", "Tax-Exempt Accounts Contribution", "Tax-Exempt Accounts Interest", "Tax-Exempt Cumulative Contributions", "Tax-Exempt Accounts Total", 
+          "Net Worth", "Note"
         ))
-      colnames(dat) <- c(
-        "Year", "Age",
-        "Tax Accounts Principle", "Tax Accounts Contribution", "Tax Accounts Interest", "Tax Accounts Total",
-        "Retirement Accounts Principle", "Retirement Accounts Contribution", "Retirement Accounts Interest", "Retirement Accounts Total",
-        "Net Worth", "Notes"
-      )
       write.csv(dat, file, row.names = FALSE)
     }
   )
 
   # generate plots
-  plot_data <- reactive( melt(run_calc()$data, id.vars = c("year", "age")) )
-
-  output$interestPlot <- renderPlot({
-    make_interest_plot( plot_data(), get_inputs()$yearly_spend )
-  })
-
-  output$totalPlot <- renderPlot({
-    make_total_plot( plot_data() )
+  plot_data <- reactive( 
+    annotate_data(run_calc()) %>% 
+      tidyr::pivot_longer(-c(year, age, note), names_to = "variable", values_to = "value")
+  )
+  
+  output$networthPlot <- renderPlot({
+    make_networth_plot( plot_data() )
   })
 
   # tables
   output$table <- DT::renderDataTable({
 
     # obtain the data
-    dat <- format_table_for_display(run_calc()$data)
+    dat <- format_table_for_display(run_calc()$data) 
 
-    # color the table
-    col <- make_tab_colors(
-      retire_age = get_inputs()$retire_age,
-      roth_access_age = run_calc()$roth_access,
-      retire_access_age = run_calc()$retire_access
-    )
-    milestones <- col$milestones
-    colors <- col$colors
-
-    # format header
-    sketch = format_header()
-
-
-    #' render the table
-    d <- datatable(dat,
+    # render the table
+    d <- datatable(
+      dat,
       rownames = FALSE,
-      container = sketch,
+      container = format_header(),
       extensions = "Buttons",
       options = list(
-        dom = "Bt",
+        dom = "t",
         ordering = FALSE,
-        buttons = I('colvis'),
         scrollX = TRUE, scrollY = 400,
         pageLength = 200
       )
     ) %>%
-
-      # format currencies
-      formatCurrency(purrr::discard(colnames(dat), ~ .x == "Age"), digits = 0) %>%
-
-      # color rows based on retirement stage
-      formatStyle(
-        "Age",
-        target = "row",
-        backgroundColor = styleInterval(milestones, colors)
-      )
+      formatCurrency(purrr::discard(colnames(dat), ~ .x == "Age"), digits = 0) %>% 
+      formatStyle("Age", target = "row", backgroundColor = make_tab_colors(run_calc())) # row color retirement stage 
     d
+  })
+  
+  # ui elemnts
+  # color key 
+  legend <- p(span(
+    strong("white")), " = work; ", 
+    span(strong("blue")), " = early retirement via tax-exempt contributions and/or taxable accounts; ", 
+    span(strong("light green")), " = early retirement via Roth ladder; ", 
+    span(strong("green")), " = retirement via locked retirement accounts; ", 
+    span(strong("red")), " = ran out of money"
+  )
+  
+  output$summary_box <- renderUI({
+    box(
+      title = "Summary of Results", width = NULL,
+      solidHeader = TRUE, status = "success", 
+      collapsible = TRUE, collapsed = !my_inputs$clicked_once,
+        
+      fluidRow(
+        column(width = 4, h4(htmlOutput("summary"))), 
+        column(width = 8, plotOutput("networthPlot"))
+      ),
+      legend
+    )
+  })
+  
+  output$detail_box <- renderUI({
+    box(
+      title = "Detailed Results", width = NULL,
+      solidHeader = TRUE, status = "success",
+      collapsible = TRUE, collapsed = TRUE,
+      
+      downloadButton('downloadData', 'Download'),
+      p(),
+      DT::dataTableOutput("table"),
+      
+      p(),
+      legend
+    )
   })
 })
