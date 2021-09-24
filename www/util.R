@@ -96,7 +96,7 @@ make_networth_plot <- function(d){
     scale_x_continuous(breaks = x_axis) +
     scale_y_continuous(limits = c(0, max_y)) + 
     scale_fill_manual(values = use_color_key$color) + 
-    labs(x = "Age", y = "Net Worth ($1,000)", title = "Portfolio Projections") +
+    labs(x = "Age", y = "Net Worth ($1000s)", title = "Portfolio Projections") +
     theme(
       panel.grid = element_blank(), 
       legend.position = "none",
