@@ -144,6 +144,7 @@ shinyServer(function(input, output) {
     d <- datatable(
       dat,
       rownames = FALSE,
+      class = 'cell-border stripe',
       container = format_header(),
       extensions = "Buttons",
       options = list(
