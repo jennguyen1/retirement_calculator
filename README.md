@@ -2,7 +2,7 @@
 
 ## Check it Out!
 
-<https://jennifernguyen.shinyapps.io/retirement_calculator/>
+<https://jennynguyen.shinyapps.io/retirement_calculator/>
 
 
 ## Quick Summary
